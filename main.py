@@ -10,7 +10,7 @@ from kivymd.uix.screen import MDScreen
 from abc import ABC, ABCMeta, abstractmethod
 
 from kivy.uix.textinput import Texture
-from kivymd.uix.list import MDListItem, MDListItemHeadlineText, MDListItemSupportingText, MDListItemSupportingText
+from kivymd.uix.list import MDListItem, MDListItemHeadlineText, MDListItemSupportingText, MDListItemSupportingText, MDListItemTertiaryText
 from kivymd.uix.button import MDButton, MDButtonText, MDButtonIcon
 from kivymd.uix.dialog import (
     MDDialog,
@@ -27,6 +27,10 @@ from kivy.storage.jsonstore import JsonStore
 from kivy.properties import ListProperty
 from kivy.core.window import Window
  
+import sqlite3
+from database import Database
+db = Database()
+
 Window.size = (480, 854)
 
 """ ------------------------------------------------------------------------------------------------------- """
@@ -183,11 +187,13 @@ class ReturnToHome(ABC):
 
 class ListManager:
     @staticmethod
-    def create_list_item(value, prefix='$', suffix='', date_format="Date Added: %Y-%m-%d"):
+    def create_list_item(value, category, now, prefix='$', suffix=''): #, , date_format="Date Added: %Y-%m-%d"
         """Creates a reusable list item with value and date"""
-        now = datetime.now().strftime(date_format)
+        # now = datetime.now().strftime(date_format)
+        # text = f'{category}'
         return MDListItem(
             MDListItemHeadlineText(text=f'{prefix}{float(value):,.2f}{suffix}'),
+            MDListItemSupportingText(text=f'{category}'),
             MDListItemSupportingText(text=now)
         )
     
@@ -503,8 +509,9 @@ Builder.load_string("""
 
 class Budget(Screen, ReturnToHome, metaclass=ScreenABCMeta): # Budget Screen
     bg_color = ListProperty([1, 1, 1, 1])
-    budget_dialog = Dialog('Budget') # fix this thing later (must be loosely coupled)
+    # budget_dialog = Dialog('Budget') # fix this thing later (must be loosely coupled)
     # total_budget = 0.0
+    pk_generator = len(db.get_budget_ids())+1  # Initialize primary key generator
 
     def __init__(self, **kwargs):
         # Initialize dialog with our callback
@@ -520,14 +527,19 @@ class Budget(Screen, ReturnToHome, metaclass=ScreenABCMeta): # Budget Screen
         try:
             value_to_float = float(value)
             self.total_budget.add_budget(value_to_float)  # Reuse the same instance
-
+            date_today = datetime.now().strftime("Date Added: %Y-%m-%d")
             print(self.total_budget.get_budget()) # Debugging line to check the budget value
+
+            # add to db
+            print(self.pk_generator)
+            db.insert_budget(self.pk_generator, value_to_float, datetime.now().strftime("%Y-%m-%d"), self.budget_dialog.selected_category)
+            self.pk_generator += 1
             
             # Update UI
             self.ids.total_budget_label.text = f"${self.total_budget.get_budget():,.2f}"
             
             # Add list item
-            list_item = ListManager.create_list_item(value)
+            list_item = ListManager.create_list_item(value, self.budget_dialog.selected_category, date_today) #
             self.ids.container.add_widget(list_item)
             
         except ValueError:
@@ -541,6 +553,17 @@ class Budget(Screen, ReturnToHome, metaclass=ScreenABCMeta): # Budget Screen
 
     def update_budget_label(self):
         self.ids.total_budget_label.text = f"${self.total_budget.get_budget():,.2f}"
+
+    def on_enter(self): # returns all budgets from database
+        self.ids.container.clear_widgets()
+        try:
+            all_budget = db.get_all_budgets()
+            for budget in all_budget:
+                saved_list_item = ListManager.create_list_item(budget[1], budget[2], budget[3])
+                self.ids.container.add_widget(saved_list_item)
+        except Exception as e:
+            print(f"Error loading budgets from database: {e}")
+            pass
 
     def return_to_home(self, name = 'budget'):
         self.manager.current = name
@@ -608,7 +631,7 @@ Builder.load_string("""
 
 class Expense(Screen, ReturnToHome, metaclass=ScreenABCMeta):
     bg_color = ListProperty([1, 1, 1, 1])
-    expense_dialog = Dialog('Expense')
+    # expense_dialog = Dialog('Expense')
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -633,7 +656,7 @@ class Expense(Screen, ReturnToHome, metaclass=ScreenABCMeta):
             self.ids.total_expense_label.text = f"${self.total_expense.get_budget():,.2f}"
             
             # Add list item
-            list_item = ListManager.create_list_item(value)
+            list_item = ListManager.create_list_item(value, self.expense_dialog.selected_category)
             self.ids.container.add_widget(list_item)
 
         except ValueError:
@@ -761,7 +784,7 @@ class MainScreen(MDApp):
         ]
         for screen in screens:
             self.wm.add_widget(screen)
-        self.wm.current = 'budget'
+        self.wm.current = 'home'
         return self.wm
     
 
