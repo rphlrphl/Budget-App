@@ -755,7 +755,7 @@ class MainScreen(MDApp):
         ]
         for screen in screens:
             self.wm.add_widget(screen)
-        self.wm.current = 'budget'
+        self.wm.current = 'home'
         return self.wm
     
 
