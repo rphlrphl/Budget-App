@@ -22,6 +22,7 @@ from kivymd.uix.textfield import MDTextField, MDTextFieldHintText
 from kivy.uix.widget import Widget
 
 from datetime import datetime
+from kivy.storage.jsonstore import JsonStore
 
 from kivy.properties import ListProperty
 from kivy.core.window import Window
@@ -220,11 +221,11 @@ class DataManager:
 
 """ ----- MAIN SCREEN ----- """
 Builder.load_string("""
-<WindowManager>:
-    HomeScreen:
-        name: "home"
-    Budget:
-        name: 'budget'
+# <WindowManager>:
+#     HomeScreen:
+#         name: "home"
+#     Budget:
+#         name: 'budget'
 
 
 <HomeScreen>:
@@ -298,7 +299,7 @@ Builder.load_string("""
                             padding: '12dp'
                             theme_bg_color: "Custom"
                             md_bg_color: [246/255,248/255,250/255,1]
-                            on_release: root.call_test_function('budget')
+                            on_release: root.switch_screen('budget')
 
                             MDRelativeLayout:             
                                 FitImage:
@@ -331,7 +332,7 @@ Builder.load_string("""
                             padding: '12dp'
                             theme_bg_color: "Custom"
                             md_bg_color: [246/255,248/255,250/255,1]
-                            on_release: root.call_test_function('expense')
+                            on_release: root.switch_screen('expense')
                                 
                             MDRelativeLayout:
                                 FitImage:
@@ -365,7 +366,7 @@ Builder.load_string("""
                             padding: '12dp'
                             theme_bg_color: "Custom"
                             md_bg_color: [246/255,248/255,250/255,1]
-                            on_release: root.call_test_function()
+                            on_release: root.switch_screen('details')
 
                             MDRelativeLayout:
                                 FitImage:
@@ -398,7 +399,7 @@ Builder.load_string("""
                             padding: '12dp'
                             theme_bg_color: "Custom"
                             md_bg_color: [246/255,248/255,250/255,1]
-                            on_release: root.call_test_function()
+                            on_release: root.switch_screen('visualization')
 
                             MDRelativeLayout:
                                 FitImage:
@@ -434,7 +435,7 @@ class HomeScreen(Screen): # Home Screen
         super().__init__(**kwargs) 
         # self.call_budget = CallBudget()
 
-    def call_test_function(self, name = 'home'):
+    def switch_screen(self, name = 'home'):
         # self.test.printtext()
         print(name)
         self.manager.current = name
@@ -525,10 +526,10 @@ class Budget(Screen, ReturnToHome, metaclass=ScreenABCMeta): # Budget Screen
             # Update UI
             self.ids.total_budget_label.text = f"${self.total_budget.get_budget():,.2f}"
             
-            
             # Add list item
             list_item = ListManager.create_list_item(value)
             self.ids.container.add_widget(list_item)
+            
         except ValueError:
             print("Error: Invalid input (not a number)")
 
@@ -647,7 +648,92 @@ class Expense(Screen, ReturnToHome, metaclass=ScreenABCMeta):
 
 """ ----- DETAILS SCREEN ----- """
 Builder.load_string("""
+<Details>:
+    canvas.before:
+        Color:
+            rgba: root.bg_color
+        Rectangle:
+            pos: self.pos
+            size: self.size
+                    
+    FloatLayout:
+        size_hint_y: 0.1
+        pos_hint: {'y': 0.93}
+                    
+        MDIconButton:
+            icon: 'arrow-left'
+            size_hint: None, None
+            size: '72dp', '72dp'
+            pos_hint: {'x': 0.05, 'top': .5}  # Changed from 'left' to 'x' and adjusted values   
+            on_release: root.return_to_home('home')
+                    
+        MDLabel:
+            text: "Budget and Expenses"
+            role: 'medium'
+            font_style: 'Title'
+            halign: 'right'
+            # valign: 'top'
+            pos_hint: {'right': .9, 'top': .8}
+            theme_font_name: 'Custom'
+            font_name: 'assets/font/OpenSans-Medium.ttf'
+            color: 'gray'
+                    
+        MDLabel:
+            text: "Details"
+            role: 'large'
+            font_style: 'Title'
+            halign: 'right'
+            # valign: 'top'
+            pos_hint: {'right': .9, 'top': .4}
+            theme_font_name: 'Custom'
+            font_name: 'assets/font/OpenSans-Medium.ttf'
+            color: 'black'
 """)
+
+class Details(Screen):
+    bg_color = ListProperty([1, 1, 1, 1])
+
+    def return_to_home(self, name = 'details'):
+        self.manager.current = name
+
+""" ----- VISUALIZATION SCREEN ----- """
+Builder.load_string("""
+<Visualization>:
+    canvas.before:
+        Color:
+            rgba: root.bg_color
+        Rectangle:
+            pos: self.pos
+            size: self.size
+                    
+    FloatLayout:
+        size_hint_y: 0.1
+        pos_hint: {'y': 0.93}
+                    
+        MDIconButton:
+            icon: 'arrow-left'
+            size_hint: None, None
+            size: '72dp', '72dp'
+            pos_hint: {'x': 0.05, 'top': .5}  # Changed from 'left' to 'x' and adjusted values   
+            on_release: root.return_to_home('home')
+                                     
+        MDLabel:
+            text: "Visualization" # Placeholder only
+            role: 'large'
+            font_style: 'Title'
+            halign: 'right'
+            # valign: 'top'
+            pos_hint: {'right': .9, 'top': .4}
+            theme_font_name: 'Custom'
+            font_name: 'assets/font/OpenSans-Medium.ttf'
+            color: 'black'
+""")
+
+class Visualization(Screen):
+    bg_color = ListProperty([1, 1, 1, 1])
+
+    def return_to_home(self, name = 'visualization'):
+        self.manager.current = name
 
 """ ------------------------------------------------------------------------------------------------------- """
 
@@ -663,7 +749,9 @@ class MainScreen(MDApp):
         screens = [
             HomeScreen(name='home'),
             Budget(name='budget'),
-            Expense(name='expense')
+            Expense(name='expense'),
+            Details(name='details'),
+            Visualization(name='visualization')
         ]
         for screen in screens:
             self.wm.add_widget(screen)
