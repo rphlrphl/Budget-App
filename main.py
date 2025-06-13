@@ -442,7 +442,7 @@ class HomeScreen(Screen): # Home Screen
         # return name_ko_later
 
 
-""" ----- BUDGET SCREEN ----- """
+""" ------------------------------------------------------------ BUDGET SCREEN ------------------------------------------------------------ """ 
 Builder.load_string("""
 <Budget>:
     canvas.before:
@@ -545,7 +545,9 @@ class Budget(Screen, ReturnToHome, metaclass=ScreenABCMeta): # Budget Screen
     def return_to_home(self, name = 'budget'):
         self.manager.current = name
 
-""" ----- EXPENSE SCREEN ----- """
+""" --------------------------------------------------------------------------------------------------------------------------------------- """
+
+""" ------------------------------------------------------------ EXPENSE SCREEN ----------------------------------------------------------- """ 
 Builder.load_string("""
 <Expense>:
     canvas.before:
@@ -646,7 +648,9 @@ class Expense(Screen, ReturnToHome, metaclass=ScreenABCMeta):
     def return_to_home(self, name = 'expense'):
         self.manager.current = name
 
-""" ----- DETAILS SCREEN ----- """
+""" --------------------------------------------------------------------------------------------------------------------------------------- """
+
+""" ------------------------------------------------------------ DETAILS SCREEN ----------------------------------------------------------- """ 
 Builder.load_string("""
 <Details>:
     canvas.before:
@@ -696,7 +700,9 @@ class Details(Screen):
     def return_to_home(self, name = 'details'):
         self.manager.current = name
 
-""" ----- VISUALIZATION SCREEN ----- """
+""" --------------------------------------------------------------------------------------------------------------------------------------- """
+
+""" ------------------------------------------------------------ VISUALIZATION SCREEN ----------------------------------------------------- """ 
 Builder.load_string("""
 <Visualization>:
     canvas.before:
@@ -735,7 +741,7 @@ class Visualization(Screen):
     def return_to_home(self, name = 'visualization'):
         self.manager.current = name
 
-""" ------------------------------------------------------------------------------------------------------- """
+""" --------------------------------------------------------------------------------------------------------------------------------------- """
 
 
     
@@ -755,7 +761,7 @@ class MainScreen(MDApp):
         ]
         for screen in screens:
             self.wm.add_widget(screen)
-        self.wm.current = 'home'
+        self.wm.current = 'budget'
         return self.wm
     
 
