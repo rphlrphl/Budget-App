@@ -1,4 +1,6 @@
-from kivymd.uix.list import MDList
+from kivymd.uix.dropdownitem import MDDropDownItem, MDDropDownItemText
+from kivymd.uix.menu import MDDropdownMenu
+
 from kivymd.app import MDApp
 from kivy.lang.builder import Builder
 from kivy.uix.screenmanager import ScreenManager, Screen, NoTransition
@@ -8,8 +10,8 @@ from kivymd.uix.screen import MDScreen
 from abc import ABC, ABCMeta, abstractmethod
 
 from kivy.uix.textinput import Texture
-from kivymd.uix.list import MDListItem, MDListItemHeadlineText, MDListItemSupportingText
-from kivymd.uix.button import MDButton, MDButtonText
+from kivymd.uix.list import MDListItem, MDListItemHeadlineText, MDListItemSupportingText, MDListItemSupportingText
+from kivymd.uix.button import MDButton, MDButtonText, MDButtonIcon
 from kivymd.uix.dialog import (
     MDDialog,
     MDDialogHeadlineText,
@@ -24,8 +26,6 @@ from datetime import datetime
 from kivy.properties import ListProperty
 from kivy.core.window import Window
  
-
-
 Window.size = (480, 854)
 
 Builder.load_string("""
@@ -344,12 +344,41 @@ Builder.load_string("""
         theme_bg_color: "Custom"
         md_bg_color: [64/255, 123/255, 123/255, 255/255]                      
         on_press: root.add_expense_dialog()
-""")
+                    
+# <Test>:
+#     canvas.before:
+#         Color:
+#             rgba: root.bg_color
+#         Rectangle:
+#             pos: self.pos
+#             size: self.size
 
+#     MDButton:
+#         id: button
+#         pos_hint: {"center_x": .5, "center_y": .5}
+#         on_release: root.menu_open()
+
+#         MDButtonText:
+#             text: "Press me"
+""")
 
 
 class WindowManager(ScreenManager):
     pass
+
+# class CategoryDropdown:
+#     def dropdown(self):
+
+# class CategoryDropDown:
+#     bg_color = ListProperty([1, 1, 1, 1])
+
+#     def __init__(self, **kwargs):
+#         super().__init__(**kwargs)
+        # self.menu = None  # To store the menu instance
+
+
+
+
 
 class HomeScreen(Screen): # Home Screen
     # Define the property that's used in KV file
@@ -376,20 +405,34 @@ class Dialog:
         self.input_type = input_type
         self.input_filter = input_filter
         self.hint_text = hint_text or id
-        self.text_field = None
+        self.amount_text_field = None
+        self.category_button = None  # Store reference to the category button
+        self.selected_category = None  # Track selected category
+        self.menu = None  # To store the menu instance
 
     def add_dialog(self):
         if not self.dialog:
-            self.text_field = MDTextField(
+            self.amount_text_field = MDTextField(
                 MDTextFieldHintText(text=self.hint_text),
                 required=True,
                 input_type=self.input_type,
                 input_filter=self.input_filter
             )
             
+            # Create and store reference to the category button
+            self.category_button = MDButton(
+                MDButtonIcon(icon='chevron-down'),
+                MDButtonText(text='Select Category'),
+                on_release=self.menu_open
+            )
+            
             self.dialog = MDDialog(
                 MDDialogHeadlineText(text=f"Add {self.id}:", halign='left'),
-                MDDialogContentContainer(self.text_field),
+                MDDialogButtonContainer(
+                    Widget(),
+                    self.category_button,  # Use the stored reference
+                ),
+                MDDialogContentContainer(self.amount_text_field),
                 MDDialogButtonContainer(
                     Widget(),
                     MDButton(
@@ -407,21 +450,87 @@ class Dialog:
             )
             self.dialog.open()
 
+    def menu_open(self, button_press_me):
+        menu = [
+            {
+                "text": "Essentials",
+                "on_release": lambda x="Essentials": self.menu_callback(x),
+            },
+            {
+                "text": "Financial Obligations", 
+                "on_release": lambda x="Financial Obligations": self.menu_callback(x),
+            },
+            {
+                "text": "Others",
+                "on_release": lambda x="Others": self.menu_callback(x),
+            }
+        ]
+        
+        # Close existing menu if open
+        if self.menu:
+            self.menu.dismiss()
+            
+        self.menu = MDDropdownMenu(caller=button_press_me, items=menu)
+        self.menu.open()
+
+    def menu_callback(self, text_item):
+        """Handle category selection"""
+        self.selected_category = text_item
+        print(f"Selected category: {text_item}")
+        
+        # Update button text to show selected category
+        if self.category_button:
+            # Find the MDButtonText child and update its text
+            for child in self.category_button.children:
+                if isinstance(child, MDButtonText):
+                    child.text = text_item
+                    break
+        
+        # Close the menu
+        if self.menu:
+            self.menu.dismiss()
+
     def handle_accept(self):
-        if self.text_field and self.text_field.text:
-            added_value = float(self.text_field.text)
+        # Check if amount is entered
+        if not self.amount_text_field or not self.amount_text_field.text.strip():
+            print("Please enter an amount")
+            return
+        
+        # Check if category is selected
+        if not self.selected_category:
+            print("Please select a category")
+            return
+        
+        try:
+            added_value = float(self.amount_text_field.text)
             if added_value <= 0:
-                pass
-            else:
-                value = self.text_field.text
-                if self.on_accept:
+                print("Error: Amount must be greater than 0")
+                return
+            
+            value = self.amount_text_field.text
+            category = self.selected_category
+            
+            if self.on_accept:
+                # Pass both value and category to the callback
+                if hasattr(self.on_accept, '__code__') and self.on_accept.__code__.co_argcount > 2:
+                    self.on_accept(value, category)
+                else:
                     self.on_accept(value)
-        self.close_dialog()
+            
+            self.close_dialog()
+            
+        except ValueError:
+            print("Error: Invalid input (not a number)")
 
     def close_dialog(self, *args):
         if self.dialog:
             self.dialog.dismiss()
             self.dialog = None
+            self.selected_category = None
+            self.category_button = None
+        if self.menu:
+            self.menu.dismiss()
+            self.menu = None
 
 
 # Create a compatible metaclass that combines ABCMeta and Screen class' metaclass
@@ -542,12 +651,6 @@ class Expense(Screen, ReturnToHome, metaclass=ScreenABCMeta):
             list_item = ListManager.create_list_item(value)
             self.ids.container.add_widget(list_item)
 
-            # # This will deduct the total budget
-            # print(self.total_budget.get_budget())
-            # # deduct_budget = self.total_budget.get_budget() - value_to_float
-            # # print(deduct_budget)
-            # # self.total_budget.add_budget(deduct_budget)
-            # # self.budget.update_budget_label()
         except ValueError:
             print("Error: Invalid input (not a number)")
 
@@ -572,7 +675,7 @@ class MainScreen(MDApp):
         ]
         for screen in screens:
             self.wm.add_widget(screen)
-        self.wm.current = 'home'
+        self.wm.current = 'budget'
         return self.wm
     
 
