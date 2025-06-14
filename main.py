@@ -38,6 +38,49 @@ Window.size = (480, 854)
 class WindowManager(ScreenManager):
     pass
 
+class DeleteListDialog:
+    dialog = None
+
+    def delete_dialog(self, list_id):
+        if not self.dialog:
+            self.dialog = MDDialog(
+                MDDialogHeadlineText(text="Delete Item", halign='left'),
+                MDDialogContentContainer(
+                    MDTextFieldHintText(text="Are you sure you want to delete this item?"),
+                ),
+                MDDialogButtonContainer(
+                    Widget(),
+                    MDButton(
+                        MDButtonText(text="Cancel"),
+                        on_release=lambda x: self.close_dialog(),
+                        style="text",
+                    ),
+                    MDButton(
+                        MDButtonText(text="Delete"),
+                        on_release=lambda x: self.handle_delete(list_id),
+                        style="text",
+                    ),
+                    spacing="8dp",
+                )
+            )
+            self.dialog.open()
+
+    def handle_delete(self, list_id):
+        db.delete_budget_by_id(list_id)
+
+        # Get active Budget screen and manually refresh it
+        app = MDApp.get_running_app()
+        budget_screen = app.root.get_screen('budget')
+        budget_screen.on_enter()
+
+        self.close_dialog()
+
+    def close_dialog(self):
+        if self.dialog:
+            self.dialog.dismiss()
+            self.dialog = None
+
+
 class Dialog:
     dialog = None
     
@@ -185,17 +228,52 @@ class ReturnToHome(ABC):
     def return_to_home(self, name='home'):
         pass
 
+## CHECKPOINT
 class ListManager:
     @staticmethod
-    def create_list_item(value, category, now, prefix='$', suffix=''): #, , date_format="Date Added: %Y-%m-%d"
-        """Creates a reusable list item with value and date"""
-        # now = datetime.now().strftime(date_format)
-        # text = f'{category}'
-        return MDListItem(
-            MDListItemHeadlineText(text=f'{prefix}{float(value):,.2f}{suffix}'),
-            MDListItemSupportingText(text=f'{category}'),
-            MDListItemSupportingText(text=now)
-        )
+    def create_list_item(id, value, category, now, prefix='$', suffix=''):
+        """Creates a list item with proper ID binding"""
+        # Convert ID to string to ensure consistency
+        str_id = str(id) if id is not None else "N/A"
+        # CHECKPOINT
+
+        try:
+            amount = float(value) if value is not None else 0.0
+            return MDListItem(
+                MDListItemHeadlineText(text=f'{prefix}{amount:,.2f}{suffix}'),
+                MDListItemSupportingText(text=category or "No Category"),
+                MDListItemSupportingText(text=now or "No Date"),
+                # Fixed lambda to properly capture the ID
+                on_press=lambda x, item_id=str_id: DeleteListDialog().delete_dialog(item_id) #ListManager.handle_item_click(item_id),
+            )
+        except Exception as e:
+            print(f"Error creating list item: {e}")
+            return MDListItem(
+                MDListItemHeadlineText(text="Invalid Item"),
+                MDListItemSupportingText(text="Could not load this item"),
+            )
+
+    @staticmethod
+    def handle_item_click(id):
+        """Handle click events with proper ID conversion"""
+        print(f"Clicked item with ID: {id} (type: {type(id)})")
+        
+        if id == "N/A":
+            print("Invalid item ID")
+            return
+            
+        try:
+            # Convert ID back to integer for database lookup
+            db_id = int(id)
+            item = db.get_budget_by_id(db_id)
+            
+            if item:
+                print(f"Item details - ID: {item[0]}, Amount: {item[1]}, Category: {item[2]}, Date: {item[3]}")
+                # Here you would typically show the details in your UI
+            else:
+                print(f"No details found for ID: {id}")
+        except ValueError:
+            print(f"Invalid ID format: {id}")
     
 class TotalBudget:
     def __init__(self):
@@ -498,6 +576,7 @@ Builder.load_string("""
         MDScrollView:
             MDList:
                 id: container
+                # on_press: root.test()
 
     MDFabButton:
         icon: 'plus'
@@ -511,7 +590,7 @@ class Budget(Screen, ReturnToHome, metaclass=ScreenABCMeta): # Budget Screen
     bg_color = ListProperty([1, 1, 1, 1])
     # budget_dialog = Dialog('Budget') # fix this thing later (must be loosely coupled)
     # total_budget = 0.0
-    pk_generator = len(db.get_budget_ids())+1  # Initialize primary key generator
+    # pk_generator = len(db.get_budget_ids())+1  # Initialize primary key generator
 
     def __init__(self, **kwargs):
         # Initialize dialog with our callback
@@ -523,24 +602,34 @@ class Budget(Screen, ReturnToHome, metaclass=ScreenABCMeta): # Budget Screen
         super().__init__(**kwargs)
         self.total_budget = TotalBudget() # new
 
-    def add_budget_item(self, value):
+    def test(self):
+        print('test')
+
+    def add_budget_item(self, value, category):
         try:
             value_to_float = float(value)
             self.total_budget.add_budget(value_to_float)  # Reuse the same instance
-            date_today = datetime.now().strftime("Date Added: %Y-%m-%d")
+            # date_today = datetime.now().strftime("Date Added: %Y-%m-%d")
             print(self.total_budget.get_budget()) # Debugging line to check the budget value
 
+
+            date_str = datetime.now().strftime("%Y-%m-%d")
             # add to db
-            print(self.pk_generator)
-            db.insert_budget(self.pk_generator, value_to_float, datetime.now().strftime("%Y-%m-%d"), self.budget_dialog.selected_category)
-            self.pk_generator += 1
+            # print(self.pk_generator)
+            # db.insert_budget(value_to_float, date_str, category)
+            # self.pk_generator += 1
             
             # Update UI
-            self.ids.total_budget_label.text = f"${self.total_budget.get_budget():,.2f}"
             
+            new_id = db.insert_budget(value, category, date_str)
+            self.ids.total_budget_label.text = f"${db.get_all_amounts():,.2f}"
+
+            try:
             # Add list item
-            list_item = ListManager.create_list_item(value, self.budget_dialog.selected_category, date_today) #
-            self.ids.container.add_widget(list_item)
+                list_item = ListManager.create_list_item(new_id, value, category, date_str) #
+                self.ids.container.add_widget(list_item)
+            except Exception as e:
+                print(f"ERROR: {e}")
             
         except ValueError:
             print("Error: Invalid input (not a number)")
@@ -551,19 +640,24 @@ class Budget(Screen, ReturnToHome, metaclass=ScreenABCMeta): # Budget Screen
     def close_budget_dialog(self, *args):
         self.budget_dialog.close_dialog()
 
+    def remove_list_item(self):
+        print('test')
+        # self.ids.container.remove_widget(list_id)
+
     def update_budget_label(self):
-        self.ids.total_budget_label.text = f"${self.total_budget.get_budget():,.2f}"
+        self.ids.total_budget_label.text = f"${db.get_all_amounts():,.2f}"  # Update the label with the total budget amount
 
     def on_enter(self): # returns all budgets from database
         self.ids.container.clear_widgets()
         try:
             all_budget = db.get_all_budgets()
+            self.ids.total_budget_label.text = f"${db.get_all_amounts():,.2f}"
             for budget in all_budget:
-                saved_list_item = ListManager.create_list_item(budget[1], budget[2], budget[3])
+                saved_list_item = ListManager.create_list_item(budget[0], budget[1], budget[2], budget[3])
                 self.ids.container.add_widget(saved_list_item)
         except Exception as e:
             print(f"Error loading budgets from database: {e}")
-            pass
+
 
     def return_to_home(self, name = 'budget'):
         self.manager.current = name
