@@ -1,3 +1,4 @@
+from kivy.uix.actionbar import BoxLayout
 from kivymd.uix.dropdownitem import MDDropDownItem, MDDropDownItemText
 from kivymd.uix.menu import MDDropdownMenu
 
@@ -26,6 +27,10 @@ from kivy.storage.jsonstore import JsonStore
 
 from kivy.properties import ListProperty
 from kivy.core.window import Window
+
+from kivy_garden.matplotlib.backend_kivyagg import FigureCanvasKivyAgg
+import matplotlib.pyplot as plt
+# from kivy.uix.layout import BoxLayout
  
 import sqlite3
 from database import Database
@@ -41,7 +46,7 @@ class WindowManager(ScreenManager):
 class DeleteListDialog:
     dialog = None
 
-    def delete_dialog(self, list_id):
+    def delete_dialog(self, list_id, caller):
         if not self.dialog:
             self.dialog = MDDialog(
                 MDDialogHeadlineText(text="Delete Item", halign='left'),
@@ -57,7 +62,7 @@ class DeleteListDialog:
                     ),
                     MDButton(
                         MDButtonText(text="Delete"),
-                        on_release=lambda x: self.handle_delete(list_id),
+                        on_release=lambda x: self.handle_delete(list_id, caller),
                         style="text",
                     ),
                     spacing="8dp",
@@ -65,13 +70,20 @@ class DeleteListDialog:
             )
             self.dialog.open()
 
-    def handle_delete(self, list_id):
-        db.delete_budget_by_id(list_id)
+    def handle_delete(self, list_id, caller):
+        class_name = caller.__class__.__name__
+
+        if class_name == 'Budget':
+            db.delete_budget_by_id(list_id)
+        elif class_name == 'Expense':
+            db.delete_expense_by_id(list_id)
+        else:
+            print(f"Unknown caller class: {class_name}")
 
         # Get active Budget screen and manually refresh it
         app = MDApp.get_running_app()
-        budget_screen = app.root.get_screen('budget')
-        budget_screen.on_enter()
+        screen = app.root.get_screen(class_name.lower())
+        screen.on_enter()
 
         self.close_dialog()
 
@@ -231,7 +243,7 @@ class ReturnToHome(ABC):
 ## CHECKPOINT
 class ListManager:
     @staticmethod
-    def create_list_item(id, value, category, now, prefix='$', suffix=''):
+    def create_list_item(id, value, category, now, prefix='$', suffix='', caller=None):
         """Creates a list item with proper ID binding"""
         # Convert ID to string to ensure consistency
         str_id = str(id) if id is not None else "N/A"
@@ -244,7 +256,7 @@ class ListManager:
                 MDListItemSupportingText(text=category or "No Category"),
                 MDListItemSupportingText(text=now or "No Date"),
                 # Fixed lambda to properly capture the ID
-                on_press=lambda x, item_id=str_id: DeleteListDialog().delete_dialog(item_id) #ListManager.handle_item_click(item_id),
+                on_press=lambda x, item_id=str_id: DeleteListDialog().delete_dialog(item_id, caller) #ListManager.handle_item_click(item_id),
             )
         except Exception as e:
             print(f"Error creating list item: {e}")
@@ -289,10 +301,10 @@ class TotalExpense:
     def __init__(self):
         self.__expense = 0.00
         
-    def add_budget(self, value):
+    def add_expense(self, value):
         self.__expense += value
         
-    def get_budget(self):
+    def get_expense(self):
         return self.__expense  
 
 class DataManager:
@@ -626,7 +638,7 @@ class Budget(Screen, ReturnToHome, metaclass=ScreenABCMeta): # Budget Screen
 
             try:
             # Add list item
-                list_item = ListManager.create_list_item(new_id, value, category, date_str) #
+                list_item = ListManager.create_list_item(new_id, value, category, date_str, caller=self) #
                 self.ids.container.add_widget(list_item)
             except Exception as e:
                 print(f"ERROR: {e}")
@@ -653,11 +665,10 @@ class Budget(Screen, ReturnToHome, metaclass=ScreenABCMeta): # Budget Screen
             all_budget = db.get_all_budgets()
             self.ids.total_budget_label.text = f"${db.get_all_amounts():,.2f}"
             for budget in all_budget:
-                saved_list_item = ListManager.create_list_item(budget[0], budget[1], budget[2], budget[3])
+                saved_list_item = ListManager.create_list_item(budget[0], budget[1], budget[2], budget[3], caller=self)
                 self.ids.container.add_widget(saved_list_item)
         except Exception as e:
             print(f"Error loading budgets from database: {e}")
-
 
     def return_to_home(self, name = 'budget'):
         self.manager.current = name
@@ -738,29 +749,55 @@ class Expense(Screen, ReturnToHome, metaclass=ScreenABCMeta):
         self.total_expense = TotalExpense()
         self.total_budget = TotalBudget()
         self.budget = Budget()
-
-    def add_expense_item(self, value):
+## CHECKPOINT
+    def add_expense_item(self, value, category):
         try:
             value_to_float = float(value)
-            self.total_expense.add_budget(value_to_float)  # Reuse the same instance
-            
-            print(self.total_budget.get_budget()) 
+            self.total_expense.add_expense(value_to_float)  # Reuse the same instance
+            # date_today = datetime.now().strftime("Date Added: %Y-%m-%d")
+            print(self.total_expense.get_expense()) # Debugging line to check the expense value
 
+
+            date_str = datetime.now().strftime("%Y-%m-%d")
+            # add to db
+            # print(self.pk_generator)
+            # db.insert_expense(value_to_float, date_str, category)
+            # self.pk_generator += 1
+            
             # Update UI
-            self.ids.total_expense_label.text = f"${self.total_expense.get_budget():,.2f}"
             
-            # Add list item
-            list_item = ListManager.create_list_item(value, self.expense_dialog.selected_category)
-            self.ids.container.add_widget(list_item)
+            new_id = db.insert_expense(value, category, date_str)
+            self.ids.total_expense_label.text = f"${db.get_all_amounts():,.2f}"
 
+            try:
+            # Add list item
+                list_item = ListManager.create_list_item(new_id, value, category, date_str, caller=self) #
+                self.ids.container.add_widget(list_item)
+            except Exception as e:
+                print(f"ERROR: {e}")
+            
         except ValueError:
             print("Error: Invalid input (not a number)")
 
     def add_expense_dialog(self):
         self.expense_dialog.add_dialog()
 
+    def update_expense_label(self):
+        self.ids.total_expense_label.text = f"${db.get_all_amounts_expense():,.2f}"  # Update the label with the total budget amount
+
     def close_expense_dialog(self, *args):
         self.expense_dialog.close_dialog()
+
+    def on_enter(self): # returns all budgets from database
+        self.ids.container.clear_widgets()
+        try:
+            all_expense = db.get_all_expense()
+            self.ids.total_expense_label.text = f"${db.get_all_amounts_expense():,.2f}"
+            for expense in all_expense:
+                saved_list_item = ListManager.create_list_item(expense[0], expense[1], expense[2], expense[3], caller=self)
+                self.ids.container.add_widget(saved_list_item)
+        except Exception as e:
+            print(f"Error loading budgets from database: {e}")
 
     def return_to_home(self, name = 'expense'):
         self.manager.current = name
@@ -850,11 +887,56 @@ Builder.load_string("""
             theme_font_name: 'Custom'
             font_name: 'assets/font/OpenSans-Medium.ttf'
             color: 'black'
+
+    # MDToolbar:
+    #     title: "Budget vs Expenses"
+    #     elevation: 10
+    
+    BoxLayout:
+        id: chart_container
+        size_hint_y: 0.9
+    
+    MDFloatLayout:
+        size_hint_y: 0.1
+        MDLabel:
+            text: "Budget (Green) vs Expenses (Red)"
+            halign: 'center'
+            font_style: 'Headline'
 """)
 
 class Visualization(Screen):
     bg_color = ListProperty([1, 1, 1, 1])
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.create_chart()
 
+    def create_chart(self):
+        self.ids.chart_container.clear_widgets()  # Clear previous chart if any
+
+        fig, ax = plt.subplots(figsize=(10, 5))
+
+        # Get your actual data from the database
+        budgets = [budget[0] for budget in db.get_budget_from_each()]
+        expenses = [expense[0] for expense in db.get_expense_from_each()]
+
+        # Plot the lines
+        ax.plot(budgets, 'g-', label='Budget', linewidth=2, marker='o')
+        ax.plot(expenses, 'r-', label='Expenses', linewidth=2, marker='s')
+
+        # Add customizations
+        ax.set_title('Budget vs Expenses', pad=20)
+        ax.set_ylabel('Amount ($)')
+        ax.grid(True, linestyle='--', alpha=0.7)
+        ax.legend()
+        plt.xticks(rotation=45)
+        plt.tight_layout()
+
+        # Embed the figure in Kivy
+        self.ids.chart_container.add_widget(FigureCanvasKivyAgg(fig))
+
+    def on_enter(self):
+        self.create_chart()
+        
     def return_to_home(self, name = 'visualization'):
         self.manager.current = name
 
