@@ -137,9 +137,18 @@ class Database:
     def get_expense_from_each(self):
         self.cursor.execute("SELECT amount FROM expense")
         return self.cursor.fetchall()
+    
+    def get_essentials_from_expense(self): #initial logic
+        self.cursor.execute("SELECT SUM(amount) FROM expense WHERE CATEGORY = ?", ('Essentials',))
+        result = self.cursor.fetchone()
+        return result[0] if result[0] is not None else 0
+    
+
+
 
 db = Database()
-db.create_expense_table()
+print(db.get_essentials_from_expense())
+# db.create_expense_table()
 
 # print(db.get_all_budgets())
 # # amounts = sum(db.get_all_amounts())
@@ -159,12 +168,6 @@ db.create_expense_table()
 #     print(budgets[1], budgets[2], budgets[3])
 
 # db.create_budget_table()
-
-# db.insert_budget(1, 1000.00, '2004-10-07','Vivamax')
-# db.insert_budget(2, 1000.00, '2004-10-07','Vivamax')
-# db.insert_budget(3, 1000.00, '2004-10-07','Vivamax')
-# db.insert_budget(4, 1000.00, '2004-10-07','Vivamax')
-# db.insert_budget(5, 1000.00, '2004-10-07','Vivamax')
 
 # db.close_connection()
 
