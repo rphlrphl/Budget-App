@@ -16,6 +16,7 @@ from kivymd.uix.button import MDButton, MDButtonText, MDButtonIcon
 from kivymd.uix.dialog import (
     MDDialog,
     MDDialogHeadlineText,
+    MDDialogSupportingText,
     MDDialogContentContainer,
     MDDialogButtonContainer
 )
@@ -93,7 +94,6 @@ class DeleteListDialog:
         if self.dialog:
             self.dialog.dismiss()
             self.dialog = None
-
 
 class Dialog:
     dialog = None
@@ -244,7 +244,7 @@ class ReturnToHome(ABC):
 
 class ListManager:
     @staticmethod
-    def create_list_item(id, value, category, now, prefix='$', suffix='', caller=None):
+    def create_list_item(id, value, category, now, prefix='₱', suffix='', caller=None):
         """Creates a list item with proper ID binding"""
         # Convert ID to string to ensure consistency
         str_id = str(id) if id is not None else "N/A"
@@ -333,30 +333,39 @@ Builder.load_string("""
         Rectangle:
             pos: self.pos
             size: self.size
-                    
-    MDLabel:
-        text: "Welcome!"
-        role: 'Headline'
-        role: 'medium'
-        halign: "left"
-        pos_hint: {'center_x': .507, 'center_y': .965}
-        # size_hint: None, None
-        padding: '15dp'
-        theme_font_name: 'Custom'
-        font_name: 'assets/font/OpenSans-Medium.ttf'
-        color: 'gray'
+            
+    FloatLayout:                
+        FitImage:
+            source: 'assets/img/icon.png'
+            halign: "left"
+            pos_hint: {'center_x': .2, 'center_y': .95}                
+            padding: '15dp'
+            size_hint: None, None
+            size: dp(150), dp(100)
+
+    # MDLabel:
+    #     text: "Welcome!"
+    #     role: 'Headline'
+    #     role: 'medium'
+    #     halign: "left"
+    #     pos_hint: {'center_x': .507, 'center_y': .965}
+    #     # size_hint: None, None
+    #     padding: '15dp'
+    #     theme_font_name: 'Custom'
+    #     font_name: 'assets/font/OpenSans-Medium.ttf'
+    #     color: 'gray'
         
-    MDLabel:
-        text: "Name"
-        font_style: 'Headline'
-        role: 'large'
-        halign: "left"
-        pos_hint: {'center_y': .93}
-        # size_hint: None, None
-        padding: '15dp'
-        theme_font_name: 'Custom'
-        font_name: 'assets/font/OpenSans-Medium.ttf'
-        color: 'black'
+    # MDLabel:
+    #     text: "User"
+    #     font_style: 'Headline'
+    #     role: 'large'
+    #     halign: "left"
+    #     pos_hint: {'center_y': .93}
+    #     # size_hint: None, None
+    #     padding: '15dp'
+    #     theme_font_name: 'Custom'
+    #     font_name: 'assets/font/OpenSans-Medium.ttf'
+    #     color: 'black'
                     
     ScrollView:
         FloatLayout:
@@ -371,7 +380,7 @@ Builder.load_string("""
                 pos_hint: {'center_x': 0.5, 'center_y': 0.4}
                 radius: [30,30,30,30]
                 theme_bg_color: "Custom"
-                md_bg_color: [64/255, 123/255, 123/255, 255/255]     
+                md_bg_color: [195/255, 177/255, 225/255]     
                         
                 MDBoxLayout:
                     adaptive_height: True
@@ -573,7 +582,7 @@ Builder.load_string("""
                     
         MDLabel:
             id: total_budget_label
-            text: "$0.00" # Placeholder only
+            text: "₱0.00" # Placeholder only
             role: 'large'
             font_style: 'Title'
             halign: 'right'
@@ -595,7 +604,7 @@ Builder.load_string("""
         icon: 'plus'
         pos_hint: {'right': 0.95, 'y': 0.05}
         theme_bg_color: "Custom"
-        md_bg_color: [64/255, 123/255, 123/255, 255/255]       
+        md_bg_color: [195/255, 177/255, 225/255]       
         on_press: root.add_budget_dialog()   
 """)
 
@@ -635,7 +644,7 @@ class Budget(Screen, ReturnToHome, metaclass=ScreenABCMeta): # Budget Screen
             # Update UI
             
             new_id = db.insert_budget(value, category, date_str)
-            self.ids.total_budget_label.text = f"${db.get_all_amounts():,.2f}"
+            self.ids.total_budget_label.text = f"₱{db.get_all_amounts():,.2f}"
 
             try:
             # Add list item
@@ -658,13 +667,13 @@ class Budget(Screen, ReturnToHome, metaclass=ScreenABCMeta): # Budget Screen
         # self.ids.container.remove_widget(list_id)
 
     def update_budget_label(self):
-        self.ids.total_budget_label.text = f"${db.get_all_amounts():,.2f}"  # Update the label with the total budget amount
+        self.ids.total_budget_label.text = f"₱{db.get_all_amounts():,.2f}"  # Update the label with the total budget amount
 
     def on_enter(self): # returns all budgets from database
         self.ids.container.clear_widgets()
         try:
             all_budget = db.get_all_budgets()
-            self.ids.total_budget_label.text = f"${db.get_all_amounts():,.2f}"
+            self.ids.total_budget_label.text = f"₱{db.get_all_amounts():,.2f}"
             for budget in all_budget:
                 saved_list_item = ListManager.create_list_item(budget[0], budget[1], budget[2], budget[3], caller=self)
                 self.ids.container.add_widget(saved_list_item)
@@ -710,7 +719,7 @@ Builder.load_string("""
                     
         MDLabel:
             id: total_expense_label
-            text: "$0.00" # Placeholder only
+            text: "₱0.00" # Placeholder only
             role: 'large'
             font_style: 'Title'
             halign: 'right'
@@ -731,7 +740,7 @@ Builder.load_string("""
         icon: 'plus'
         pos_hint: {'right': 0.95, 'y': 0.05}
         theme_bg_color: "Custom"
-        md_bg_color: [64/255, 123/255, 123/255, 255/255]                      
+        md_bg_color: [195/255, 177/255, 225/255]                      
         on_press: root.add_expense_dialog()
 """)
 
@@ -758,17 +767,12 @@ class Expense(Screen, ReturnToHome, metaclass=ScreenABCMeta):
             # date_today = datetime.now().strftime("Date Added: %Y-%m-%d")
             print(self.total_expense.get_expense()) # Debugging line to check the expense value
 
-
             date_str = datetime.now().strftime("%Y-%m-%d")
-            # add to db
-            # print(self.pk_generator)
-            # db.insert_expense(value_to_float, date_str, category)
-            # self.pk_generator += 1
-            
+
             # Update UI
             
             new_id = db.insert_expense(value, category, date_str)
-            self.ids.total_expense_label.text = f"${db.get_all_amounts():,.2f}"
+            self.ids.total_expense_label.text = f"₱{db.get_all_amounts_expense():,.2f}"
 
             try:
             # Add list item
@@ -784,7 +788,7 @@ class Expense(Screen, ReturnToHome, metaclass=ScreenABCMeta):
         self.expense_dialog.add_dialog()
 
     def update_expense_label(self):
-        self.ids.total_expense_label.text = f"${db.get_all_amounts_expense():,.2f}"  # Update the label with the total budget amount
+        self.ids.total_expense_label.text = f"₱{db.get_all_amounts_expense():,.2f}"  # Update the label with the total budget amount
 
     def close_expense_dialog(self, *args):
         self.expense_dialog.close_dialog()
@@ -793,7 +797,7 @@ class Expense(Screen, ReturnToHome, metaclass=ScreenABCMeta):
         self.ids.container.clear_widgets()
         try:
             all_expense = db.get_all_expense()
-            self.ids.total_expense_label.text = f"${db.get_all_amounts_expense():,.2f}"
+            self.ids.total_expense_label.text = f"₱{db.get_all_amounts_expense():,.2f}"
             for expense in all_expense:
                 saved_list_item = ListManager.create_list_item(expense[0], expense[1], expense[2], expense[3], caller=self)
                 self.ids.container.add_widget(saved_list_item)
@@ -879,7 +883,7 @@ Builder.load_string("""
             size_hint: None, None
             size: '400dp', '100dp'
             pos_hint: {'center_x': 0.5}
-            # on_release: root.second_card_action()
+            on_release: root.most_budgeted_and_spent()
             
             MDLabel:
                 text: "Most Budgeted and Spent Category:"
@@ -896,10 +900,27 @@ Builder.load_string("""
             size_hint: None, None
             size: '400dp', '100dp'
             pos_hint: {'center_x': 0.5}
-            # on_release: root.third_card_action()
+            on_release: root.tips()
             
             MDLabel:
-                text: "Budget Insights:"
+                text: "Tips:"
+                role: 'large'
+                font_style: 'Title'
+                halign: 'left'
+                padding: '30dp'
+                theme_font_name: 'Custom'
+                font_name: 'assets/font/OpenSans-Medium.ttf'
+                color: 'black'
+                    
+        MDCard:
+            style: 'filled'
+            size_hint: None, None
+            size: '400dp', '100dp'
+            pos_hint: {'center_x': 0.5}
+            on_release: root.clear_all_data()
+            
+            MDLabel:
+                text: "Clear Data"
                 role: 'large'
                 font_style: 'Title'
                 halign: 'left'
@@ -919,13 +940,234 @@ Builder.load_string("""
         #     theme_font_name: 'Custom'
         #     font_name: 'assets/font/OpenSans-Medium.ttf'
         #     color: 'black'
+                    
+# <CardDialog>:
+#     MDLabel:
+        
 """)
 
+# class GenerateMessageBudget:
+#     def message():
+#         return f"."
+
+# class GenerateMessageExpense(GenerateMessageBudget):
+#     pass
+
+class CheckFinancialStatus:
+    def __init__(self):
+        self.total_budget = db.get_all_amounts()
+        self.total_expense = db.get_all_amounts_expense()
+        self.total_essential_budget = db.get_all_essentials_budget()
+        self.total_obligation_budget = db.get_all_obligations_budget()
+        self.total_other_budget = db.get_all_others_budget()
+        self.total_essential_expense = db.get_all_essentials_expense()
+        self.total_obligation_expense = db.get_all_obligations_expense()
+        self.total_other_expense = db.get_all_others_expense()
+
+    def financial_status(self):
+        # Use "is None" to detect missing data, not falsy values like 0
+        if self.total_budget is None or self.total_expense is None:
+            return None
+        if self.total_budget == self.total_expense:
+            return 'breakeven'
+        elif self.total_budget > self.total_expense:
+            return 'saved'
+        else:
+            return 'overspent'
+        
+
+class BudgetExpenseDetail(CheckFinancialStatus):
+    def title(self):
+        status = self.financial_status()
+        if not status:
+            return "No data available"
+        elif status == 'breakeven':
+            return "Breakeven"
+        elif status == 'saved':
+            return f"You've saved ₱{self.total_budget - self.total_expense}"
+        elif status == 'overspent':
+            return f"You've overspent ₱{abs(self.total_budget - self.total_expense)} so far"
+        
+
+    def description(self):
+        return f"""
+Total Budget: {self.total_budget}
+Total Expense: {self.total_expense}
+"""
+    
+class MostBudgetedAndSpent(BudgetExpenseDetail):
+    def title(self):
+        budget_category = {
+            'Essentials' : self.total_essential_budget,
+            'Obligations' : self.total_obligation_budget,
+            'Others' : self.total_other_budget
+        }
+        top_budgeted = max(budget_category, key=budget_category.get)
+        budget_value = budget_category[top_budgeted]
+        expense_category = {
+            'Essentials' : self.total_essential_expense,
+            'Obligations' : self.total_obligation_expense,
+            'Others' : self.total_other_expense
+        }
+        most_spent = max(expense_category, key=expense_category.get)
+        expense_value = expense_category[most_spent]
+
+        if not budget_value and not expense_value: return f"None"
+        else: return f"""
+Most Budgeted: {top_budgeted} (₱{budget_value})
+Most Spent On: {most_spent} (₱{expense_value})
+"""
+
+    def description(self):
+        return f"""
+Budget:
+Essentials - {self.total_essential_budget}
+Financial Obligations - {self.total_obligation_budget}
+Others - {self.total_other_budget}
+
+Expense:
+Essentials - {self.total_essential_expense}
+Financial Obligations - {self.total_obligation_expense}
+Others - {self.total_other_expense}
+"""
+
+class Tips(BudgetExpenseDetail):
+    def title(self):
+        status = self.financial_status()
+        if not status:
+            return "No data available"
+        elif status == 'breakeven':
+            return f"Since you've managed to breakeven,"    
+        elif status == 'saved':
+            return f"Since you've been saving,"
+        elif status == 'overspent':
+            return f"Since you've overspent,"
+    
+    def description(self):
+        from random import choice
+        status = self.financial_status()
+        if not status:
+            return "None"
+
+        if status == 'saved':
+            tips = [
+                "📈 Nice job! Consider putting the extra money into savings or investments.",
+                "✅ Think about rewarding yourself with a small treat — you deserve it!",
+                "💰 You might want to reduce your budget next time if you consistently underspend.",
+                "🟢 Analyze which category you saved most in — can you repeat it?"
+            ]
+        elif status == 'overspent':
+            tips = [
+                "❌ Review your biggest expenses this month — cut back on non-essentials.",
+                "💸 Try setting a daily spending limit to stay on track.",
+                "📉 Look for subscriptions or habits that can be paused or reduced.",
+                "🔴 Compare your budget vs actuals to adjust future budgets realistically."
+            ]
+        elif status == 'breakeven':
+            tips = [
+                "⚖️ You managed your budget well — but watch for surprise expenses.",
+                "💡 Breakeven is a good goal, but can you find room to save a little next time?",
+                "🧠 Consider adding an emergency buffer to your budget for more flexibility.",
+                "📝 Next month, try setting a challenge: save 5% more."
+            ]
+        else:
+            return "None"
+
+        return choice(tips) 
+
+class ClearAllData:
+    dialog = None
+
+    def show_dialog(self):
+        if not self.dialog:
+            self.dialog = MDDialog(
+                MDDialogHeadlineText(text = f"Are you sure you want to clear all your data? This can’t be undone.", halign = 'left'),
+                MDDialogButtonContainer(
+                    Widget(),
+                    MDButton(
+                        MDButtonText(text="Cancel"),
+                        style="text",
+                        on_release=lambda x: self.close_dialog()
+                    ),
+                    MDButton(
+                        MDButtonText(text="Yes"),
+                        style="text",
+                        on_release=lambda x: self.clear_data()
+                    ),
+                    spacing="8dp",
+                ),
+            )
+            self.dialog.open()
+    
+    def clear_data(self):
+        db.clear_data()
+        self.close_dialog()
+        self.dialog = None
+
+    def close_dialog(self, *args):
+        if self.dialog:
+            self.dialog.dismiss()
+            self.dialog = None
+
+
+class CardDialog:
+    dialog = None
+
+    def __init__(self, dialog_title, text_one):
+        self.dialog_title = dialog_title
+        self.text_one = text_one
+
+
+    def show_dialog(self):
+        if not self.dialog:
+            self.dialog = MDDialog(
+                MDDialogHeadlineText(text = f"{self.dialog_title}", halign = 'left'),
+                MDDialogSupportingText(text = f"{self.text_one}", halign = 'left'),
+                MDDialogButtonContainer(
+                    Widget(),
+                    MDButton(
+                        MDButtonText(text="OK"),
+                        style="text",
+                        on_release= lambda x: self.close_dialog(),
+                    ),
+                    spacing="8dp",
+                ),
+            )
+            self.dialog.open()
+    
+    def close_dialog(self, *args):
+        if self.dialog:
+            self.dialog.dismiss()
+            self.dialog = None
+
 class Details(Screen):
+    
     bg_color = ListProperty([1, 1, 1, 1])
 
     def budget_expense_tab(self):
-        print('func working')
+        budget_expense_detail = BudgetExpenseDetail()
+        title = budget_expense_detail.title()
+        message = budget_expense_detail.description()
+        card_dialog = CardDialog(title,message)
+        card_dialog.show_dialog()
+
+    def most_budgeted_and_spent(self):
+        budgeted_and_spent = MostBudgetedAndSpent()
+        title = budgeted_and_spent.title()
+        message = budgeted_and_spent.description()
+        card_dialog = CardDialog(title, message)
+        card_dialog.show_dialog()
+
+    def tips(self):
+        detail_tips = Tips()
+        title = detail_tips.title()
+        message = detail_tips.description()
+        card_dialog = CardDialog(title, message)
+        card_dialog.show_dialog()
+
+    def clear_all_data(self):
+        confirm_clear = ClearAllData()
+        confirm_clear.show_dialog()
 
     def return_to_home(self, name = 'details'):
         self.manager.current = name
@@ -972,12 +1214,12 @@ Builder.load_string("""
         id: chart_container
         size_hint_y: 0.9
     
-    MDFloatLayout:
-        size_hint_y: 0.1
-        MDLabel:
-            text: "Budget (Green) vs Expenses (Red)"
-            halign: 'center'
-            font_style: 'Headline'
+    # MDFloatLayout:
+    #     size_hint_y: 0.1
+    #     MDLabel:
+    #         text: "Budget (Green) vs Expenses (Red)"
+    #         halign: 'center'
+    #         font_style: 'Headline'
 """)
 
 class Visualization(Screen):
@@ -1001,7 +1243,7 @@ class Visualization(Screen):
 
         # Add customizations
         ax.set_title('Budget vs Expenses', pad=20)
-        ax.set_ylabel('Amount ($)')
+        ax.set_ylabel('Amount (₱)')
         ax.grid(True, linestyle='--', alpha=0.7)
         ax.legend()
         plt.xticks(rotation=45)
@@ -1018,10 +1260,6 @@ class Visualization(Screen):
 
 """ --------------------------------------------------------------------------------------------------------------------------------------- """
 
-
-    
-
-
 class MainScreen(MDApp):
     def build(self):
         # from budget_screen import Budget
@@ -1036,7 +1274,7 @@ class MainScreen(MDApp):
         ]
         for screen in screens:
             self.wm.add_widget(screen)
-        self.wm.current = 'details'
+        self.wm.current = 'home'
         return self.wm
     
 
