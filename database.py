@@ -64,6 +64,23 @@ class Database:
     def get_all_amounts(self): # test
         self.cursor.execute("SELECT amount FROM budget")
         return sum([row[0] for row in self.cursor.fetchall()])
+    
+    # bagong lagay lang mga kasunod dito
+    def get_all_essentials_budget(self):
+        self.cursor.execute("SELECT SUM(amount) FROM budget WHERE CATEGORY = ?", ('Essentials',))
+        result = self.cursor.fetchone()
+        return result[0] if result[0] is not None else 0
+    
+    def get_all_obligations_budget(self):
+        self.cursor.execute("SELECT SUM(amount) FROM budget WHERE CATEGORY = ?", ('Financial Obligations',))
+        result = self.cursor.fetchone()
+        return result[0] if result[0] is not None else 0
+    
+    def get_all_others_budget(self):
+        self.cursor.execute("SELECT SUM(amount) FROM budget WHERE CATEGORY = ?", ('Others',))
+        result = self.cursor.fetchone()
+        return result[0] if result[0] is not None else 0
+
 
     def close_connection(self):
         """Close the database connection"""
@@ -128,6 +145,27 @@ class Database:
     def get_all_amounts_expense(self): # test
         self.cursor.execute("SELECT amount FROM expense")
         return sum([row[0] for row in self.cursor.fetchall()])
+    
+    def get_all_essentials_expense(self):
+        self.cursor.execute("SELECT SUM(amount) FROM expense WHERE CATEGORY = ?", ('Essentials',))
+        result = self.cursor.fetchone()
+        return result[0] if result[0] is not None else 0
+    
+    def get_all_obligations_expense(self):
+        self.cursor.execute("SELECT SUM(amount) FROM expense WHERE CATEGORY = ?", ('Financial Obligations',))
+        result = self.cursor.fetchone()
+        return result[0] if result[0] is not None else 0
+    
+    def get_all_others_expense(self):
+        self.cursor.execute("SELECT SUM(amount) FROM expense WHERE CATEGORY = ?", ('Others',))
+        result = self.cursor.fetchone()
+        return result[0] if result[0] is not None else 0
+    
+    def clear_data(self):
+        self.cursor.execute("DELETE FROM budget")
+        self.con.commit()
+        self.cursor.execute("DELETE FROM expense")
+        self.con.commit()
 
     """  test  """
     def get_budget_from_each(self):
@@ -147,7 +185,15 @@ class Database:
 
 
 db = Database()
-print(db.get_essentials_from_expense())
+
+# db.clear_data()
+
+# print(db.get_all_essentials_expense())
+# print(db.get_all_obligations_expense())
+# print(db.get_all_others_expense())
+# print(db.get_all_amounts())
+# print(db.get_all_amounts_expense)
+
 # db.create_expense_table()
 
 # print(db.get_all_budgets())
@@ -170,6 +216,5 @@ print(db.get_essentials_from_expense())
 # db.create_budget_table()
 
 # db.close_connection()
-
 
 
