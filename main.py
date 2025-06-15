@@ -1,44 +1,27 @@
-from kivy.uix.actionbar import BoxLayout
-from kivymd.uix.dropdownitem import MDDropDownItem, MDDropDownItemText
-from kivymd.uix.menu import MDDropdownMenu
-
-from kivymd.app import MDApp
+from abc import ABC, ABCMeta, abstractmethod
+from datetime import datetime
+import matplotlib.pyplot as plt
 from kivy.lang.builder import Builder
 from kivy.uix.screenmanager import ScreenManager, Screen, NoTransition
-from kivymd.uix.card import MDCard
-from kivymd.uix.screen import MDScreen
-
-from abc import ABC, ABCMeta, abstractmethod
-
-from kivy.uix.textinput import Texture
-from kivymd.uix.list import MDListItem, MDListItemHeadlineText, MDListItemSupportingText, MDListItemSupportingText, MDListItemTertiaryText
-from kivymd.uix.button import MDButton, MDButtonText, MDButtonIcon
-from kivymd.uix.dialog import (
-    MDDialog,
-    MDDialogHeadlineText,
-    MDDialogSupportingText,
-    MDDialogContentContainer,
-    MDDialogButtonContainer
-)
-from kivymd.uix.textfield import MDTextField, MDTextFieldHintText
-from kivy.uix.widget import Widget
-
-from datetime import datetime
-from kivy.storage.jsonstore import JsonStore
-
 from kivy.properties import ListProperty
 from kivy.core.window import Window
-
+from kivy.uix.widget import Widget
 from kivy_garden.matplotlib.backend_kivyagg import FigureCanvasKivyAgg
-import matplotlib.pyplot as plt
-# from kivy.uix.layout import BoxLayout
- 
-import sqlite3
-from database import Database
+from kivymd.uix.menu import MDDropdownMenu
+from kivymd.app import MDApp
+from kivymd.uix.list import MDListItem, MDListItemHeadlineText, MDListItemSupportingText, MDListItemSupportingText
+from kivymd.uix.button import MDButton, MDButtonText, MDButtonIcon
+from kivymd.uix.dialog import (MDDialog, MDDialogHeadlineText, MDDialogSupportingText, MDDialogContentContainer, MDDialogButtonContainer)
+from kivymd.uix.textfield import MDTextField, MDTextFieldHintText
+from database import Database, BudgetDatabase, ExpenseDatabase, ClearDatabase
 
-
+# Instantiate Database
 db = Database()
+budget_db = BudgetDatabase()
+expense_db = ExpenseDatabase()
+clear_db = ClearDatabase()
 
+# Set window size
 Window.size = (480, 854)
 
 """ ------------------------------------------------------------------------------------------------------- """
@@ -77,9 +60,9 @@ class DeleteListDialog:
         class_name = caller.__class__.__name__
 
         if class_name == 'Budget':
-            db.delete_budget_by_id(list_id)
+            budget_db.delete_budget_by_id(list_id)
         elif class_name == 'Expense':
-            db.delete_expense_by_id(list_id)
+            expense_db.delete_expense_by_id(list_id)
         else:
             print(f"Unknown caller class: {class_name}")
 
@@ -237,11 +220,6 @@ class Dialog:
 class ScreenABCMeta(type(Screen), ABCMeta):
     pass
 
-class ReturnToHome(ABC):
-    @abstractmethod
-    def return_to_home(self, name='home'):
-        pass
-
 class ListManager:
     @staticmethod
     def create_list_item(id, value, category, now, prefix='₱', suffix='', caller=None):
@@ -278,7 +256,7 @@ class ListManager:
         try:
             # Convert ID back to integer for database lookup
             db_id = int(id)
-            item = db.get_budget_by_id(db_id)
+            item = budget_db.get_budget_by_id(db_id)
             
             if item:
                 print(f"Item details - ID: {item[0]}, Amount: {item[1]}, Category: {item[2]}, Date: {item[3]}")
@@ -288,31 +266,34 @@ class ListManager:
         except ValueError:
             print(f"Invalid ID format: {id}")
     
-class TotalBudget:
-    def __init__(self):
-        self.__budget = 0.00
-        
-    def add_budget(self, value):
-        self.__budget += value
-        
-    def get_budget(self):
-        return self.__budget
-        
-class TotalExpense:
-    def __init__(self):
-        self.__expense = 0.00
-        
-    def add_expense(self, value):
-        self.__expense += value
-        
-    def get_expense(self):
-        return self.__expense  
+class BaseClass(ABC):
+    @abstractmethod
+    def add_item(self):
+        pass
 
-class DataManager:
-    def __init__(self):
-        self.total_budget = TotalBudget()
-        self.total_expense = TotalExpense()
+    @abstractmethod
+    def add_dialog(self):
+        pass
 
+    @abstractmethod
+    def close_dialog(self):
+        pass
+
+    @abstractmethod
+    def update_label(self):
+        pass
+
+    @abstractmethod
+    def on_enter(self):
+        pass
+
+    @abstractmethod
+    def remove_list_item(self):
+        pass
+
+    @abstractmethod
+    def return_to_home(self, name='home'):
+        pass
 """ ------------------------------------------------------------------------------------------------------- """
 """ ------------------------------------------------------------------------------------------------------- """
 
@@ -535,17 +516,14 @@ Builder.load_string("""
 
 class HomeScreen(Screen): # Home Screen
     # Define the property that's used in KV file
-    bg_color = ListProperty([255/255,255/255,255/255, 1])  # Light gray color
+    bg_color = ListProperty([255/255,255/255,255/255, 1])
 
     def __init__(self, **kwargs):
-        super().__init__(**kwargs) 
-        # self.call_budget = CallBudget()
+        super().__init__(**kwargs)       
 
     def switch_screen(self, name = 'home'):
-        # self.test.printtext()
         print(name)
         self.manager.current = name
-        # return name_ko_later
 
 
 """ ------------------------------------------------------------ BUDGET SCREEN ------------------------------------------------------------ """ 
@@ -605,75 +583,53 @@ Builder.load_string("""
         pos_hint: {'right': 0.95, 'y': 0.05}
         theme_bg_color: "Custom"
         md_bg_color: [195/255, 177/255, 225/255]       
-        on_press: root.add_budget_dialog()   
+        on_press: root.add_dialog()   
 """)
 
-class Budget(Screen, ReturnToHome, metaclass=ScreenABCMeta): # Budget Screen
+class Budget(Screen, BaseClass, metaclass=ScreenABCMeta): # Budget Screen
     bg_color = ListProperty([1, 1, 1, 1])
-    # budget_dialog = Dialog('Budget') # fix this thing later (must be loosely coupled)
-    # total_budget = 0.0
-    # pk_generator = len(db.get_budget_ids())+1  # Initialize primary key generator
-
     def __init__(self, **kwargs):
         # Initialize dialog with our callback
         self.budget_dialog = Dialog(
             id='Budget',
-            on_accept=self.add_budget_item,
+            on_accept=self.add_item,
             hint_text='Budget amount'
         )
         super().__init__(**kwargs)
-        self.total_budget = TotalBudget() # new
 
-    def test(self):
-        print('test')
-
-    def add_budget_item(self, value, category):
+    def add_item(self, value, category):
         try:
-            value_to_float = float(value)
-            self.total_budget.add_budget(value_to_float)  # Reuse the same instance
-            # date_today = datetime.now().strftime("Date Added: %Y-%m-%d")
-            print(self.total_budget.get_budget()) # Debugging line to check the budget value
-
-
             date_str = datetime.now().strftime("%Y-%m-%d")
-            # add to db
-            # print(self.pk_generator)
-            # db.insert_budget(value_to_float, date_str, category)
-            # self.pk_generator += 1
-            
             # Update UI
-            
-            new_id = db.insert_budget(value, category, date_str)
-            self.ids.total_budget_label.text = f"₱{db.get_all_amounts():,.2f}"
-
+            new_id = budget_db.insert_budget(value, category, date_str) # implement ko encapsulation dito
+            self.ids.total_budget_label.text = f"₱{budget_db.get_all_amounts():,.2f}"
             try:
             # Add list item
                 list_item = ListManager.create_list_item(new_id, value, category, date_str, caller=self) #
                 self.ids.container.add_widget(list_item)
             except Exception as e:
                 print(f"ERROR: {e}")
-            
         except ValueError:
             print("Error: Invalid input (not a number)")
 
-    def add_budget_dialog(self):
+    def add_dialog(self):
         self.budget_dialog.add_dialog()
 
-    def close_budget_dialog(self, *args):
+    def close_dialog(self, *args):
         self.budget_dialog.close_dialog()
 
     def remove_list_item(self):
         print('test')
         # self.ids.container.remove_widget(list_id)
 
-    def update_budget_label(self):
-        self.ids.total_budget_label.text = f"₱{db.get_all_amounts():,.2f}"  # Update the label with the total budget amount
+    def update_label(self):
+        self.ids.total_budget_label.text = f"₱{budget_db.get_all_amounts():,.2f}"  # Update the label with the total budget amount
 
     def on_enter(self): # returns all budgets from database
         self.ids.container.clear_widgets()
         try:
-            all_budget = db.get_all_budgets()
-            self.ids.total_budget_label.text = f"₱{db.get_all_amounts():,.2f}"
+            all_budget = budget_db.get_all_budgets()
+            self.ids.total_budget_label.text = f"₱{budget_db.get_all_amounts():,.2f}"
             for budget in all_budget:
                 saved_list_item = ListManager.create_list_item(budget[0], budget[1], budget[2], budget[3], caller=self)
                 self.ids.container.add_widget(saved_list_item)
@@ -741,38 +697,30 @@ Builder.load_string("""
         pos_hint: {'right': 0.95, 'y': 0.05}
         theme_bg_color: "Custom"
         md_bg_color: [195/255, 177/255, 225/255]                      
-        on_press: root.add_expense_dialog()
+        on_press: root.add_dialog()
 """)
 
-class Expense(Screen, ReturnToHome, metaclass=ScreenABCMeta):
+class Expense(Screen, BaseClass, metaclass=ScreenABCMeta):
     bg_color = ListProperty([1, 1, 1, 1])
-    # expense_dialog = Dialog('Expense')
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         # Initialize dialog with our callback
         self.expense_dialog = Dialog(
             id='Expense',
-            on_accept=self.add_expense_item,
+            on_accept=self.add_item,
             hint_text='Expense amount'
         )
-        self.total_expense = TotalExpense()
-        self.total_budget = TotalBudget()
         self.budget = Budget()
 ## CHECKPOINT
-    def add_expense_item(self, value, category):
+    def add_item(self, value, category):
         try:
-            value_to_float = float(value)
-            self.total_expense.add_expense(value_to_float)  # Reuse the same instance
-            # date_today = datetime.now().strftime("Date Added: %Y-%m-%d")
-            print(self.total_expense.get_expense()) # Debugging line to check the expense value
-
             date_str = datetime.now().strftime("%Y-%m-%d")
 
             # Update UI
             
-            new_id = db.insert_expense(value, category, date_str)
-            self.ids.total_expense_label.text = f"₱{db.get_all_amounts_expense():,.2f}"
+            new_id = expense_db.insert_expense(value, category, date_str)
+            self.ids.total_expense_label.text = f"₱{expense_db.get_all_amounts_expense():,.2f}"
 
             try:
             # Add list item
@@ -784,20 +732,23 @@ class Expense(Screen, ReturnToHome, metaclass=ScreenABCMeta):
         except ValueError:
             print("Error: Invalid input (not a number)")
 
-    def add_expense_dialog(self):
+    def add_dialog(self):
         self.expense_dialog.add_dialog()
 
-    def update_expense_label(self):
-        self.ids.total_expense_label.text = f"₱{db.get_all_amounts_expense():,.2f}"  # Update the label with the total budget amount
+    def update_label(self):
+        self.ids.total_expense_label.text = f"₱{expense_db.get_all_amounts_expense():,.2f}"  # Update the label with the total budget amount
 
-    def close_expense_dialog(self, *args):
+    def remove_list_item(self):
+        pass
+
+    def close_dialog(self, *args):
         self.expense_dialog.close_dialog()
 
     def on_enter(self): # returns all budgets from database
         self.ids.container.clear_widgets()
         try:
-            all_expense = db.get_all_expense()
-            self.ids.total_expense_label.text = f"₱{db.get_all_amounts_expense():,.2f}"
+            all_expense = expense_db.get_all_expense()
+            self.ids.total_expense_label.text = f"₱{expense_db.get_all_amounts_expense():,.2f}"
             for expense in all_expense:
                 saved_list_item = ListManager.create_list_item(expense[0], expense[1], expense[2], expense[3], caller=self)
                 self.ids.container.add_widget(saved_list_item)
@@ -946,27 +897,23 @@ Builder.load_string("""
         
 """)
 
-# class GenerateMessageBudget:
-#     def message():
-#         return f"."
-
-# class GenerateMessageExpense(GenerateMessageBudget):
-#     pass
-
 class CheckFinancialStatus:
     def __init__(self):
-        self.total_budget = db.get_all_amounts()
-        self.total_expense = db.get_all_amounts_expense()
-        self.total_essential_budget = db.get_all_essentials_budget()
-        self.total_obligation_budget = db.get_all_obligations_budget()
-        self.total_other_budget = db.get_all_others_budget()
-        self.total_essential_expense = db.get_all_essentials_expense()
-        self.total_obligation_expense = db.get_all_obligations_expense()
-        self.total_other_expense = db.get_all_others_expense()
+        self.total_budget = budget_db.get_all_amounts()
+        self.total_expense = expense_db.get_all_amounts_expense()
+        self.total_essential_budget = budget_db.get_all_essentials_budget()
+        self.total_obligation_budget = budget_db.get_all_obligations_budget()
+        self.total_other_budget = budget_db.get_all_others_budget()
+        self.total_essential_expense = expense_db.get_all_essentials_expense()
+        self.total_obligation_expense = expense_db.get_all_obligations_expense()
+        self.total_other_expense = expense_db.get_all_others_expense()
 
     def financial_status(self):
-        # Use "is None" to detect missing data, not falsy values like 0
+        # Check for None first (missing data)
         if self.total_budget is None or self.total_expense is None:
+            return None
+        # Then check if both are 0 (no data)
+        if self.total_budget == 0 and self.total_expense == 0:
             return None
         if self.total_budget == self.total_expense:
             return 'breakeven'
@@ -975,7 +922,6 @@ class CheckFinancialStatus:
         else:
             return 'overspent'
         
-
 class BudgetExpenseDetail(CheckFinancialStatus):
     def title(self):
         status = self.financial_status()
@@ -987,14 +933,15 @@ class BudgetExpenseDetail(CheckFinancialStatus):
             return f"You've saved ₱{self.total_budget - self.total_expense}"
         elif status == 'overspent':
             return f"You've overspent ₱{abs(self.total_budget - self.total_expense)} so far"
-        
 
     def description(self):
         return f"""
 Total Budget: {self.total_budget}
 Total Expense: {self.total_expense}
 """
-    
+# class BudgetExpenseDetail inherits from CheckFinancialStatus class. Inheriting from the said class gives 
+# BudgetExpenseDetail() access to numerous attributes and function
+
 class MostBudgetedAndSpent(BudgetExpenseDetail):
     def title(self):
         budget_category = {
@@ -1043,6 +990,7 @@ class Tips(BudgetExpenseDetail):
         elif status == 'overspent':
             return f"Since you've overspent,"
     
+    # This function has different functionalities. It is just folded.
     def description(self):
         from random import choice
         status = self.financial_status()
@@ -1074,6 +1022,10 @@ class Tips(BudgetExpenseDetail):
             return "None"
 
         return choice(tips) 
+# These two classes are an example of polymorphism. Tips class inherits from MostBudgetedAndSpent
+# class, and each classes both have title and description function, overriding each method.
+# Overriding methods allows developers to implement unique implementation while using the same method name
+
 
 class ClearAllData:
     dialog = None
@@ -1100,7 +1052,7 @@ class ClearAllData:
             self.dialog.open()
     
     def clear_data(self):
-        db.clear_data()
+        clear_db.clear_data()
         self.close_dialog()
         self.dialog = None
 
@@ -1234,8 +1186,8 @@ class Visualization(Screen):
         fig, ax = plt.subplots(figsize=(10, 5))
 
         # Get your actual data from the database
-        budgets = [budget[0] for budget in db.get_budget_from_each()]
-        expenses = [expense[0] for expense in db.get_expense_from_each()]
+        budgets = [budget[0] for budget in budget_db.get_budget_from_each()]
+        expenses = [expense[0] for expense in expense_db.get_expense_from_each()]
 
         # Plot the lines
         ax.plot(budgets, 'g-', label='Budget', linewidth=2, marker='o')
@@ -1277,6 +1229,11 @@ class MainScreen(MDApp):
         self.wm.current = 'home'
         return self.wm
     
+# This class inherits directly from MDApp, a class from KivyMD library.
+# Inheriting from MDApp allows access to Material Design features via KivyMD.
+# This class mainly serves as a manager for multiple screens.
+
+
 
 
 
