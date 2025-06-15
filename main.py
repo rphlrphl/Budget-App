@@ -34,6 +34,8 @@ import matplotlib.pyplot as plt
  
 import sqlite3
 from database import Database
+
+
 db = Database()
 
 Window.size = (480, 854)
@@ -240,7 +242,6 @@ class ReturnToHome(ABC):
     def return_to_home(self, name='home'):
         pass
 
-## CHECKPOINT
 class ListManager:
     @staticmethod
     def create_list_item(id, value, category, now, prefix='$', suffix='', caller=None):
@@ -813,7 +814,8 @@ Builder.load_string("""
         Rectangle:
             pos: self.pos
             size: self.size
-                    
+
+                            
     FloatLayout:
         size_hint_y: 0.1
         pos_hint: {'y': 0.93}
@@ -846,10 +848,84 @@ Builder.load_string("""
             theme_font_name: 'Custom'
             font_name: 'assets/font/OpenSans-Medium.ttf'
             color: 'black'
+
+    BoxLayout:
+        orientation: 'vertical'
+        spacing: '15dp'
+        padding: '20dp'
+        size_hint_y: None
+        pos_hint: {'center_x' : .5 , 'top' : .8}
+        height: self.minimum_height
+
+        MDCard:
+            style: 'filled'
+            size_hint: None, None
+            size: '400dp', '100dp'
+            pos_hint: {'center_x': 0.5}
+            on_release: root.budget_expense_tab()
+            
+            MDLabel:
+                text: "Your Current Budget vs. Expenses:"
+                role: 'large'
+                font_style: 'Title'
+                halign: 'left'
+                padding: '30dp'
+                theme_font_name: 'Custom'
+                font_name: 'assets/font/OpenSans-Medium.ttf'
+                color: 'black'
+
+        MDCard:
+            style: 'filled'
+            size_hint: None, None
+            size: '400dp', '100dp'
+            pos_hint: {'center_x': 0.5}
+            # on_release: root.second_card_action()
+            
+            MDLabel:
+                text: "Most Budgeted and Spent Category:"
+                role: 'large'
+                font_style: 'Title'
+                halign: 'left'
+                padding: '30dp'
+                theme_font_name: 'Custom'
+                font_name: 'assets/font/OpenSans-Medium.ttf'
+                color: 'black'
+
+        MDCard:
+            style: 'filled'
+            size_hint: None, None
+            size: '400dp', '100dp'
+            pos_hint: {'center_x': 0.5}
+            # on_release: root.third_card_action()
+            
+            MDLabel:
+                text: "Budget Insights:"
+                role: 'large'
+                font_style: 'Title'
+                halign: 'left'
+                padding: '30dp'
+                theme_font_name: 'Custom'
+                font_name: 'assets/font/OpenSans-Medium.ttf'
+                color: 'black'
+                    
+        # MDLabel:
+        #     text: "comparison here"
+        #     role: 'medium'
+        #     font_style: 'Title'
+        #     halign: 'left'
+        #     # valign: 'top'
+        #     pos_hint: {'top': .2}
+        #     padding: '30dp'
+        #     theme_font_name: 'Custom'
+        #     font_name: 'assets/font/OpenSans-Medium.ttf'
+        #     color: 'black'
 """)
 
 class Details(Screen):
     bg_color = ListProperty([1, 1, 1, 1])
+
+    def budget_expense_tab(self):
+        print('func working')
 
     def return_to_home(self, name = 'details'):
         self.manager.current = name
@@ -960,7 +1036,7 @@ class MainScreen(MDApp):
         ]
         for screen in screens:
             self.wm.add_widget(screen)
-        self.wm.current = 'home'
+        self.wm.current = 'details'
         return self.wm
     
 
