@@ -30,48 +30,52 @@ class WindowManager(ScreenManager):
     pass
 
 class DeleteListDialog:
-    dialog = None
+    def __init__(self):
+        self.dialog = None
 
     def delete_dialog(self, list_id, caller):
-        if not self.dialog:
-            self.dialog = MDDialog(
-                MDDialogHeadlineText(text="Delete Item", halign='left'),
-                MDDialogContentContainer(
-                    MDTextFieldHintText(text="Are you sure you want to delete this item?"),
+
+        if self.dialog:
+            self.dialog.dismiss()
+            self.dialog = None
+            
+        self.dialog = MDDialog(
+            MDDialogHeadlineText(text="Delete Item", halign='left'),
+            MDDialogContentContainer(
+                MDTextFieldHintText(text="Are you sure you want to delete this item?"),
+            ),
+            MDDialogButtonContainer(
+                Widget(),
+                MDButton(
+                    MDButtonText(text="Cancel"),
+                    on_release=lambda x: self.close_dialog(),
+                    style="text",
                 ),
-                MDDialogButtonContainer(
-                    Widget(),
-                    MDButton(
-                        MDButtonText(text="Cancel"),
-                        on_release=lambda x: self.close_dialog(),
-                        style="text",
-                    ),
-                    MDButton(
-                        MDButtonText(text="Delete"),
-                        on_release=lambda x: self.handle_delete(list_id, caller),
-                        style="text",
-                    ),
-                    spacing="8dp",
-                )
+                MDButton(
+                    MDButtonText(text="Delete"),
+                    on_release=lambda x: self._perform_delete(list_id, caller),
+                    style="text",
+                ),
+                spacing="8dp",
             )
-            self.dialog.open()
+        )
+        self.dialog.open()
 
-    def handle_delete(self, list_id, caller):
+    def _perform_delete(self, list_id, caller):
+        """Handle the actual deletion logic"""
         class_name = caller.__class__.__name__
-
-        if class_name == 'Budget':
-            budget_db.delete_budget_by_id(list_id)
-        elif class_name == 'Expense':
-            expense_db.delete_expense_by_id(list_id)
-        else:
-            print(f"Unknown caller class: {class_name}")
-
-        # Get active Budget screen and manually refresh it
-        app = MDApp.get_running_app()
-        screen = app.root.get_screen(class_name.lower())
-        screen.on_enter()
-
-        self.close_dialog()
+        
+        try:
+            if class_name == 'Budget':
+                budget_db.delete_budget_by_id(list_id)
+            elif class_name == 'Expense':
+                expense_db.delete_expense_by_id(list_id)
+                
+            self.close_dialog()
+            caller.on_enter()
+        except Exception as e:
+            print(f"Error during delete: {e}")
+            self.close_dialog()
 
     def close_dialog(self):
         if self.dialog:
@@ -130,7 +134,8 @@ class Dialog:
                         style="text",
                     ),
                     spacing="8dp",
-                )
+                ),
+                auto_dismiss=False
             )
             self.dialog.open()
 
@@ -285,10 +290,6 @@ class BaseClass(ABC):
 
     @abstractmethod
     def on_enter(self):
-        pass
-
-    @abstractmethod
-    def remove_list_item(self):
         pass
 
     @abstractmethod
@@ -698,6 +699,7 @@ class Budget(Screen, BaseClass, metaclass=ScreenABCMeta): # Budget Screen
             on_accept=self.add_item,
             hint_text='Budget amount'
         )
+        self.delete_dialog = DeleteListDialog()
         super().__init__(**kwargs)
 
     def add_item(self, value, category):
@@ -721,10 +723,6 @@ class Budget(Screen, BaseClass, metaclass=ScreenABCMeta): # Budget Screen
     def close_dialog(self, *args):
         self.budget_dialog.close_dialog()
 
-    def remove_list_item(self):
-        print('test')
-        # self.ids.container.remove_widget(list_id)
-
     def update_label(self):
         self.ids.total_budget_label.text = f"₱{budget_db.get_all_amounts():,.2f}"  # Update the label with the total budget amount
 
@@ -738,6 +736,17 @@ class Budget(Screen, BaseClass, metaclass=ScreenABCMeta): # Budget Screen
                 self.ids.container.add_widget(saved_list_item)
         except Exception as e:
             print(f"Error loading budgets from database: {e}")
+
+    # def on_enter(self): # returns all budgets from database
+    #     self.ids.container.clear_widgets()
+    #     try:
+    #         all_expense = expense_db.get_all_expense()
+    #         self.ids.total_expense_label.text = f"₱{expense_db.get_all_amounts_expense():,.2f}"
+    #         for expense in all_expense:
+    #             saved_list_item = ListManager.create_list_item(expense[0], expense[1], expense[2], expense[3], caller=self)
+    #             self.ids.container.add_widget(saved_list_item)
+    #     except Exception as e:
+    #         print(f"Error loading budgets from database: {e}")
 
     def return_to_home(self, name = 'budget'):
         self.manager.current = name
@@ -815,7 +824,7 @@ class Expense(Screen, BaseClass, metaclass=ScreenABCMeta):
             hint_text='Expense amount'
         )
         self.budget = Budget()
-## CHECKPOINT
+
     def add_item(self, value, category):
         try:
             date_str = datetime.now().strftime("%Y-%m-%d")
@@ -840,9 +849,6 @@ class Expense(Screen, BaseClass, metaclass=ScreenABCMeta):
 
     def update_label(self):
         self.ids.total_expense_label.text = f"₱{expense_db.get_all_amounts_expense():,.2f}"  # Update the label with the total budget amount
-
-    def remove_list_item(self):
-        pass
 
     def close_dialog(self, *args):
         self.expense_dialog.close_dialog()
@@ -1151,6 +1157,7 @@ class ClearAllData:
                     ),
                     spacing="8dp",
                 ),
+                auto_dismiss=False
             )
             self.dialog.open()
     
@@ -1187,6 +1194,7 @@ class CardDialog:
                     ),
                     spacing="8dp",
                 ),
+                auto_dismiss=False
             )
             self.dialog.open()
     
