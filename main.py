@@ -22,7 +22,7 @@ expense_db = ExpenseDatabase()
 clear_db = ClearDatabase()
 
 # Set window size
-Window.size = (720, 1280)
+# Window.size = (720, 1280)
 
 """ ------------------------------------------------------------------------------------------------------- """
 
