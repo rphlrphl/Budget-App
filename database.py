@@ -59,17 +59,19 @@ class BudgetDatabase(Database):
         self.__get_budgetfromeach = "SELECT amount FROM budget"
         self.__delete_budgetbyid = "DELETE FROM budget WHERE id = ?"
 
+
     def insert_budget(self, amount, category, date):
         """Public method to insert a new budget entry"""
         try:
             self._cursor.execute(self.__insert, (amount, category, date,))
             self._commit()
+            return self._cursor.lastrowid if self._cursor.lastrowid else None
         except sqlite3.Error as e:
             print(f"Error inserting budget: {e}")
             raise
 
     def get_budget_by_id(self, list_id):
-        if id is None:
+        if list_id is None: # changed from id -> list_id
             print("Error: Cannot search for None ID")
             return None  
         try:
@@ -112,8 +114,12 @@ class BudgetDatabase(Database):
         return self._cursor.fetchall()
     
     def delete_budget_by_id(self, list_id):
-        self._cursor.execute(self.__delete_budgetbyid, (list_id,))
-        self._con.commit()
+        if list_id is None:
+            print("Error: Cannot search for None ID")
+            return None
+        else:
+            self._cursor.execute(self.__delete_budgetbyid, (list_id,))
+            self._con.commit()
 
 
 
