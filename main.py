@@ -22,7 +22,7 @@ expense_db = ExpenseDatabase()
 clear_db = ClearDatabase()
 
 # Set window size
-Window.size = (480, 854)
+Window.size = (720, 1280)
 
 """ ------------------------------------------------------------------------------------------------------- """
 
@@ -307,208 +307,311 @@ Builder.load_string("""
 
 
 <HomeScreen>:
-
     canvas.before:
         Color:
             rgba: root.bg_color
         Rectangle:
             pos: self.pos
             size: self.size
-            
-    FloatLayout:                
-        FitImage:
-            source: 'assets/img/icon.png'
-            halign: "left"
-            pos_hint: {'center_x': .2, 'center_y': .95}                
-            padding: '15dp'
-            size_hint: None, None
-            size: dp(150), dp(100)
 
-    # MDLabel:
-    #     text: "Welcome!"
-    #     role: 'Headline'
-    #     role: 'medium'
-    #     halign: "left"
-    #     pos_hint: {'center_x': .507, 'center_y': .965}
-    #     # size_hint: None, None
-    #     padding: '15dp'
-    #     theme_font_name: 'Custom'
-    #     font_name: 'assets/font/OpenSans-Medium.ttf'
-    #     color: 'gray'
+    MDBoxLayout:
+        orientation: 'vertical'
+        spacing: dp(20)
+        padding: dp(20)
         
-    # MDLabel:
-    #     text: "User"
-    #     font_style: 'Headline'
-    #     role: 'large'
-    #     halign: "left"
-    #     pos_hint: {'center_y': .93}
-    #     # size_hint: None, None
-    #     padding: '15dp'
-    #     theme_font_name: 'Custom'
-    #     font_name: 'assets/font/OpenSans-Medium.ttf'
-    #     color: 'black'
+        # Header section
+        MDBoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: None
+            height: dp(80)
+            spacing: dp(15)
+            
+            FitImage:
+                source: 'assets/img/icon.png'
+                halign: "center"
+                pos_hint: {'center_x': 14, 'center_y': .5}                
+                padding: '15dp'
+                size_hint: None, None
+                size: dp(150), dp(100)
+                
+            Widget:  # Spacer to push content to the right
+            Widget:
+            Widget:  # Spacer to push content to the right
+            Widget:
+            Widget:  # Spacer to push content to the right
+            Widget:
+            Widget:  # Spacer to push content to the right
+
+            
+            MDBoxLayout:
+                orientation: 'vertical'
+                pos_hint: {'center_y': 0.5}
+                size_hint_x: None
+                width: dp(200)
+                
+                MDLabel:
+                    text: "Welcome!"
+                    role: 'small'
+                    font_style: "Title"
+                    theme_text_color: "Primary"
+                    size_hint_y: None
+                    height: self.texture_size[1]
+                    theme_font_name: 'Custom'
+                    font_name: 'assets/font/OpenSans-Medium.ttf'
+                    halign: 'right'
+                    text_size: self.size
                     
-    ScrollView:
-        FloatLayout:
-            MDCard:
-                style: 'filled'
-                # adaptive_height: True
-                # adaptive_width: True  
-                # size_hint: None, None
-                pos: 0, 0
-                padding: '5dp'
-                size: 50, 50
-                pos_hint: {'center_x': 0.5, 'center_y': 0.4}
-                radius: [30,30,30,30]
-                theme_bg_color: "Custom"
-                md_bg_color: [195/255, 177/255, 225/255]     
-                        
-                MDBoxLayout:
-                    adaptive_height: True
-                    adaptive_width: True   
-                    pos_hint: {'center_x': 0.5, 'center_y': 0.58}  # Center both horizontally and vertically
-                    padding: '20dp'
-                    spacing: '10dp'
-               
-                    MDGridLayout:
-                        cols: 2 if root.width > dp(400) else 1
-                        spacing: '10dp'
-                        adaptive_height: True
-                        adaptive_width: True
+                MDLabel:
+                    text: "Dashboard"
+                    role: 'small'
+                    font_style: "Headline"
+                    theme_text_color: "Secondary"
+                    size_hint_y: None
+                    height: self.texture_size[1]
+                    theme_font_name: 'Custom'
+                    font_name: 'assets/font/OpenSans-Medium.ttf'
+                    halign: 'right'
+                    text_size: self.size
+            
+            Widget:  # Spacer
+        
+        # Main content area
+        ScrollView:
+            MDBoxLayout:
+                orientation: 'vertical'
+                size_hint_y: None
+                height: self.minimum_height
+                spacing: dp(20)
+                
+                # Main card container
+                MDCard:
+                    style: 'elevated'
+                    size_hint_y: None
+                    height: self.minimum_height
+                    padding: dp(20)
+                    spacing: dp(15)
+                    elevation: 2
+                    radius: [15, 15, 15, 15]
+                    theme_bg_color: "Custom"
+                    md_bg_color: [0.96, 0.97, 0.98, 1]
+                    
+                    MDBoxLayout:
+                        orientation: 'vertical'
                         size_hint_y: None
-                        height: self.minimum_height # This ensures that the grid layout grows with its content
+                        height: self.minimum_height
+                        spacing: dp(15)
+                        
+                        # Grid layout for cards
+                        MDGridLayout:
+                            cols: 1
+                            spacing: dp(15)
+                            size_hint_y: None
+                            height: self.minimum_height
+                            adaptive_height: True
+                            
+                            # Budget Card
+                            MDCard:
+                                style: 'elevated'
+                                size_hint_y: None
+                                height: dp(200)
+                                padding: dp(15)
+                                elevation: 1
+                                radius: [12, 12, 12, 12]
+                                theme_bg_color: "Custom"
+                                md_bg_color: [1, 1, 1, 1]
+                                ripple_behavior: True
+                                on_release: root.switch_screen('budget')
                                 
-                        MDCard:
-                            style: 'filled'
-                            size_hint: None, None
-                            width: dp(280) if root.width > dp(600) else (root.width - dp(60)) / 2 ###
-                            height: '300dp' ###
-                            padding: '12dp'
-                            theme_bg_color: "Custom"
-                            md_bg_color: [246/255,248/255,250/255,1]
-                            on_release: root.switch_screen('budget')
-
-                            MDRelativeLayout:             
-                                FitImage:
-                                    source: 'assets/img/budget-icon.png'
-                                    pos_hint: {'center_x': 0.5, 'center_y': 0.5}
-                                    size_hint: (None, None)
-                                    size: dp(100), dp(100) ###
-                                    # allow_stretch: True
-                                    # keep_ratio: True
-                                    # font_size: '2000sp'
-
-                                MDIconButton:
-                                    icon: "dots-vertical"
-                                    pos_hint: {"top": 1, "right": 1}
-
-                                MDLabel:
-                                    text: "Budget"
-                                    adaptive_size: True
-                                    color: "black"
-                                    pos: "12dp", "12dp"
-                                    theme_font_name: 'Custom'
-                                    font_name: 'assets/font/OpenSans-SemiBold.ttf'
-
-                        MDCard:
-                            style: 'filled'
-                            size_hint: None, None
-                            size: '240dp', '300dp' 
-                            width: dp(280) if root.width > dp(600) else (root.width - dp(60)) / 2 ###
-                            height: '300dp' ###
-                            padding: '12dp'
-                            theme_bg_color: "Custom"
-                            md_bg_color: [246/255,248/255,250/255,1]
-                            on_release: root.switch_screen('expense')
-                                
-                            MDRelativeLayout:
-                                FitImage:
-                                    source: 'assets/img/expense-icon.png'
-                                    pos_hint: {'center_x': 0.5, 'center_y': 0.5}
-                                    size_hint: (None, None)
-                                    size: ("150dp", "150dp")  # Control size directly
-                                    # allow_stretch: True
-                                    # keep_ratio: True
-                                    # font_size: '2000sp'
-
-
-                                MDIconButton:
-                                    icon: "dots-vertical"
-                                    pos_hint: {"top": 1, "right": 1}
+                                MDBoxLayout:
+                                    orientation: 'vertical'
+                                    spacing: dp(10)
                                     
-                                MDLabel:
-                                    text: "Expenses"
-                                    adaptive_size: True
-                                    color: "black"
-                                    pos: "12dp", "12dp"
-                                    theme_font_name: 'Custom'
-                                    font_name: 'assets/font/OpenSans-SemiBold.ttf'
-
-                        MDCard:
-                            style: 'filled'
-                            size_hint: None, None
-                            size: '240dp', '300dp' 
-                            width: dp(280) if root.width > dp(600) else (root.width - dp(60)) / 2 ###
-                            height: '300dp' ###
-                            padding: '12dp'
-                            theme_bg_color: "Custom"
-                            md_bg_color: [246/255,248/255,250/255,1]
-                            on_release: root.switch_screen('details')
-
-                            MDRelativeLayout:
-                                FitImage:
-                                    source: 'assets/img/detail-icon.png'
-                                    pos_hint: {'center_x': 0.5, 'center_y': 0.5}
-                                    size_hint: (None, None)
-                                    size: ("150dp", "150dp")  # Control size directly
-                                    # allow_stretch: True
-                                    # keep_ratio: True
-                                    # font_size: '2000sp'                    
-
-                                MDIconButton:
-                                    icon: "dots-vertical"
-                                    pos_hint: {"top": 1, "right": 1}                    
-
-                                MDLabel:
-                                    text: "Details"
-                                    adaptive_size: True
-                                    color: "black"
-                                    pos: "12dp", "12dp"
-                                    theme_font_name: 'Custom'
-                                    font_name: 'assets/font/OpenSans-SemiBold.ttf'
+                                    MDBoxLayout:
+                                        orientation: 'horizontal'
+                                        size_hint_y: None
+                                        height: dp(30)
+                                        
+                                        MDLabel:
+                                            text: "Budget"
+                                            role: 'medium'
+                                            font_style: "Title"
+                                            theme_text_color: "Primary"
+                                            size_hint_y: None
+                                            height: self.texture_size[1]
+                                            theme_font_name: 'Custom'
+                                            font_name: 'assets/font/OpenSans-SemiBold.ttf'
+                                            
+                                        Widget:  # Spacer
+                                        
+                                        MDIconButton:
+                                            icon: "dots-vertical"
+                                            theme_icon_color: "Custom"
+                                            icon_color: [0.6, 0.6, 0.6, 1]
+                                            size_hint: None, None
+                                            size: dp(30), dp(30)
+                                    
+                                    Widget:  # Spacer
+                                    
+                                    FitImage:
+                                        source: 'assets/img/budget-icon.png'
+                                        size_hint: None, None
+                                        size: dp(80), dp(80)
+                                        pos_hint: {'center_x': 0.5}
+                                        
+                                    Widget:  # Spacer
+                            
+                            # Expenses Card
+                            MDCard:
+                                style: 'elevated'
+                                size_hint_y: None
+                                height: dp(200)
+                                padding: dp(15)
+                                elevation: 1
+                                radius: [12, 12, 12, 12]
+                                theme_bg_color: "Custom"
+                                md_bg_color: [1, 1, 1, 1]
+                                ripple_behavior: True
+                                on_release: root.switch_screen('expense')
                                 
-                        MDCard:
-                            style: 'filled'
-                            size_hint: None, None
-                            size: '240dp', '300dp' 
-                            width: dp(280) if root.width > dp(600) else (root.width - dp(60)) / 2 ###
-                            height: '300dp' ###
-                            padding: '12dp'
-                            theme_bg_color: "Custom"
-                            md_bg_color: [246/255,248/255,250/255,1]
-                            on_release: root.switch_screen('visualization')
-
-                            MDRelativeLayout:
-                                FitImage:
-                                    source: 'assets/img/graph-icon.png'
-                                    pos_hint: {'center_x': 0.5, 'center_y': 0.5}
-                                    size_hint: (None, None)
-                                    size: ("150dp", "150dp")  # Control size directly
-                                    # allow_stretch: True
-                                    # keep_ratio: True
-                                    # font_size: '2000sp'                    
-
-                                MDIconButton:
-                                    icon: "dots-vertical"
-                                    pos_hint: {"top": 1, "right": 1}                   
-
-                                MDLabel:
-                                    text: "Visualization"
-                                    adaptive_size: True
-                                    color: "black"
-                                    pos: "12dp", "12dp"
-                                    theme_font_name: 'Custom'
-                                    font_name: 'assets/font/OpenSans-SemiBold.ttf'
+                                MDBoxLayout:
+                                    orientation: 'vertical'
+                                    spacing: dp(10)
+                                    
+                                    MDBoxLayout:
+                                        orientation: 'horizontal'
+                                        size_hint_y: None
+                                        height: dp(30)
+                                        
+                                        MDLabel:
+                                            text: "Expenses"
+                                            role: 'medium'
+                                            font_style: "Title"
+                                            theme_text_color: "Primary"
+                                            size_hint_y: None
+                                            height: self.texture_size[1]
+                                            theme_font_name: 'Custom'
+                                            font_name: 'assets/font/OpenSans-SemiBold.ttf'
+                                            
+                                        Widget:  # Spacer
+                                        
+                                        MDIconButton:
+                                            icon: "dots-vertical"
+                                            theme_icon_color: "Custom"
+                                            icon_color: [0.6, 0.6, 0.6, 1]
+                                            size_hint: None, None
+                                            size: dp(30), dp(30)
+                                    
+                                    Widget:  # Spacer
+                                    
+                                    FitImage:
+                                        source: 'assets/img/expense-icon.png'
+                                        size_hint: None, None
+                                        size: dp(80), dp(80)
+                                        pos_hint: {'center_x': 0.5}
+                                        
+                                    Widget:  # Spacer
+                            
+                            # Details Card
+                            MDCard:
+                                style: 'elevated'
+                                size_hint_y: None
+                                height: dp(200)
+                                padding: dp(15)
+                                elevation: 1
+                                radius: [12, 12, 12, 12]
+                                theme_bg_color: "Custom"
+                                md_bg_color: [1, 1, 1, 1]
+                                ripple_behavior: True
+                                on_release: root.switch_screen('details')
+                                
+                                MDBoxLayout:
+                                    orientation: 'vertical'
+                                    spacing: dp(10)
+                                    
+                                    MDBoxLayout:
+                                        orientation: 'horizontal'
+                                        size_hint_y: None
+                                        height: dp(30)
+                                        
+                                        MDLabel:
+                                            text: "Details"
+                                            role: 'medium'
+                                            font_style: "Title"
+                                            theme_text_color: "Primary"
+                                            size_hint_y: None
+                                            height: self.texture_size[1]
+                                            theme_font_name: 'Custom'
+                                            font_name: 'assets/font/OpenSans-SemiBold.ttf'
+                                            
+                                        Widget:  # Spacer
+                                        
+                                        MDIconButton:
+                                            icon: "dots-vertical"
+                                            theme_icon_color: "Custom"
+                                            icon_color: [0.6, 0.6, 0.6, 1]
+                                            size_hint: None, None
+                                            size: dp(30), dp(30)
+                                    
+                                    Widget:  # Spacer
+                                    
+                                    FitImage:
+                                        source: 'assets/img/detail-icon.png'
+                                        size_hint: None, None
+                                        size: dp(80), dp(80)
+                                        pos_hint: {'center_x': 0.5}
+                                        
+                                    Widget:  # Spacer
+                            
+                            # Visualization Card
+                            MDCard:
+                                style: 'elevated'
+                                size_hint_y: None
+                                height: dp(200)
+                                padding: dp(15)
+                                elevation: 1
+                                radius: [12, 12, 12, 12]
+                                theme_bg_color: "Custom"
+                                md_bg_color: [1, 1, 1, 1]
+                                ripple_behavior: True
+                                on_release: root.switch_screen('visualization')
+                                
+                                MDBoxLayout:
+                                    orientation: 'vertical'
+                                    spacing: dp(10)
+                                    
+                                    MDBoxLayout:
+                                        orientation: 'horizontal'
+                                        size_hint_y: None
+                                        height: dp(30)
+                                        
+                                        MDLabel:
+                                            text: "Visualization"
+                                            role: 'medium'
+                                            font_style: "Title"
+                                            theme_text_color: "Primary"
+                                            size_hint_y: None
+                                            height: self.texture_size[1]
+                                            theme_font_name: 'Custom'
+                                            font_name: 'assets/font/OpenSans-SemiBold.ttf'
+                                            
+                                        Widget:  # Spacer
+                                        
+                                        MDIconButton:
+                                            icon: "dots-vertical"
+                                            theme_icon_color: "Custom"
+                                            icon_color: [0.6, 0.6, 0.6, 1]
+                                            size_hint: None, None
+                                            size: dp(30), dp(30)
+                                    
+                                    Widget:  # Spacer
+                                    
+                                    FitImage:
+                                        source: 'assets/img/graph-icon.png'
+                                        size_hint: None, None
+                                        size: dp(80), dp(80)
+                                        pos_hint: {'center_x': 0.5}
+                                        
+                                    Widget:  # Spacer
                                                                 
 
                     
